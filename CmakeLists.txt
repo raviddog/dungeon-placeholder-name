@@ -1,0 +1,50 @@
+cmake_minimum_required (VERSION 3.11)
+project (opengl_test)
+
+#opengl_test cmakelists.txt for sdl project
+
+
+if(UNIX AND NOT APPLE)
+    #linux
+    set(OUT_DIR ./build/linux/)
+    file(MAKE_DIRECTORY ${OUT_DIR})
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUT_DIR})
+    
+    add_executable(opengl_test main.cpp)
+    add_library(glad glad.c)
+
+    target_include_directories(glad PUBLIC ./include)
+    target_link_libraries(opengl_test -lSDL2main -lSDL2)
+    target_link_libraries(opengl_test -lglfw3 -lGL -lX11 -lpthread -lXrandr -lXi -ldl)
+
+    target_link_libraries(opengl_test glad)
+    
+endif()
+
+if(WIN32)
+    #windows
+    set(OUT_DIR ./build/win32/)
+    set(RES_DIR ./res/win32)
+    file(MAKE_DIRECTORY ${OUT_DIR})
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUT_DIR})
+    
+    add_executable(opengl_test main.cpp glad.c shader.cpp)
+    #add_library(glad glad.c)
+
+    target_include_directories(opengl_test PUBLIC ../../libraries/include)
+    target_include_directories(opengl_test PUBLIC ./include)
+    target_link_libraries(opengl_test -L../../libraries/lib)
+    target_link_libraries(opengl_test -w -Wl,-subsystem,windows)
+    target_link_libraries(opengl_test -lmingw32 -lSDL2main -lSDL2)
+    
+    #target_link_libraries(opengl_test glad)
+
+    configure_file(${RES_DIR}/SDL2.dll ${OUT_DIR} COPYONLY)
+    configure_file(${RES_DIR}/fragment.shader ${OUT_DIR} COPYONLY)
+    configure_file(${RES_DIR}/vertex.shader ${OUT_DIR} COPYONLY)
+    
+endif()
+
+#add_library(opengl_test library.c)
+#file(MAKE_DIRECTORY ${OUT_DIR}/directory)
+#configure_file(path/to/file.txt ${OUT_DIR} COPYONLY)
