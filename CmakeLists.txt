@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.11)
 project (opengl_test)
 
 #opengl_test cmakelists.txt for sdl project
-
+set(RES_DIR ./res/default)
 
 if(UNIX AND NOT APPLE)
     #linux
@@ -24,7 +24,7 @@ endif()
 if(WIN32)
     #windows
     set(OUT_DIR ./build/win32/)
-    set(RES_DIR ./res/win32)
+    set(OS_RES_DIR ./res/win32)
     file(MAKE_DIRECTORY ${OUT_DIR})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUT_DIR})
     
@@ -39,11 +39,12 @@ if(WIN32)
     
     #target_link_libraries(opengl_test glad)
 
-    configure_file(${RES_DIR}/SDL2.dll ${OUT_DIR} COPYONLY)
-    configure_file(${RES_DIR}/fragment.shader ${OUT_DIR} COPYONLY)
-    configure_file(${RES_DIR}/vertex.shader ${OUT_DIR} COPYONLY)
+    configure_file(${OS_RES_DIR}/SDL2.dll ${OUT_DIR} COPYONLY)
     
 endif()
+    
+configure_file(${RES_DIR}/fragment.shader ${OUT_DIR} COPYONLY)
+configure_file(${RES_DIR}/vertex.shader ${OUT_DIR} COPYONLY)
 
 #add_library(opengl_test library.c)
 #file(MAKE_DIRECTORY ${OUT_DIR}/directory)
