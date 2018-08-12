@@ -4,6 +4,7 @@
 #include "math.h"
 
 #include "shader.h"
+#include "stb_image.h"
 
 
 SDL_Window *window;
@@ -41,10 +42,11 @@ int main(int argc, char *args[])
     glClear(GL_COLOR_BUFFER_BIT);
 
     float vertices[] = {
-        -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-        0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-        0.0f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f
+        //positions         //colors            //texture coords
+        -0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  -1.0f, -1.0f,
+        -0.5f, 0.5f, 0.0f,   0.0f, 1.0f, 0.0f,  -1.0f, 1.0f,
+        0.5f, 0.5f, 0.0f,    0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
+        0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,  1.0f, -1.0f
     };
 
     uint32_t indices[] = {
@@ -53,7 +55,7 @@ int main(int argc, char *args[])
     };
 
     Shader* shader = new Shader;
-    shader->load("./vertex.shader", "./fragment.shader");
+    shader->load("./shader.vert", "./shader.frag");
     shader->use();
 
 
@@ -71,12 +73,31 @@ int main(int argc, char *args[])
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    int imgWidth, imgHeight, imgChannels;
+    unsigned char *data = stbi_load("wall.jpg", &imgWidth, &imgHeight, &imgChannels, 0);
+    uint32_t texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    if(data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+
+    stbi_image_free(data);
 
     bool quit = false;
     while(!quit) {
@@ -90,7 +111,7 @@ int main(int argc, char *args[])
 
 
         glClear(GL_COLOR_BUFFER_BIT);
-        
+        glBindTexture(GL_TEXTURE_2D, texture);
         glBindVertexArray(VAO); //set what we're drawing        
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         SDL_GL_SwapWindow(window);
