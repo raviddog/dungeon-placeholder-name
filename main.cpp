@@ -40,6 +40,7 @@ int main(int argc, char *args[])
     glViewport(0, 0, 640, 480);
     glClearColor(0.2f, 0.3f, 0.2f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+    stbi_set_flip_vertically_on_load(true);
 
     float vertices[] = {
         //positions         //colors            //texture coords
@@ -90,6 +91,7 @@ int main(int argc, char *args[])
     unsigned char *data = stbi_load("wall.jpg", &imgWidth, &imgHeight, &imgChannels, 0);
     uint32_t texture;
     glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
 
     if(data) {
@@ -98,6 +100,24 @@ int main(int argc, char *args[])
     }
 
     stbi_image_free(data);
+
+    uint32_t texture2;
+    glGenTextures(1, &texture2);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    data = stbi_load("awesomeface.png", &imgWidth, &imgHeight, &imgChannels, 0);
+
+    if(data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+
+    stbi_image_free(data);
+\
+
+    shader->setInt("texture1", 0);
+    shader->setInt("texture2", 1);
+
 
     bool quit = false;
     while(!quit) {
@@ -111,7 +131,6 @@ int main(int argc, char *args[])
 
 
         glClear(GL_COLOR_BUFFER_BIT);
-        glBindTexture(GL_TEXTURE_2D, texture);
         glBindVertexArray(VAO); //set what we're drawing        
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         SDL_GL_SwapWindow(window);

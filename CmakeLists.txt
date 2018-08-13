@@ -41,6 +41,7 @@ endif()
 configure_file(${RES_DIR}/shader.frag ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/shader.vert ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/wall.jpg ${OUT_DIR} COPYONLY)
+configure_file(${RES_DIR}/awesomeface.png ${OUT_DIR} COPYONLY)
 
 #add_library(opengl_test library.c)
 #file(MAKE_DIRECTORY ${OUT_DIR}/directory)
