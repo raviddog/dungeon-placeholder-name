@@ -10,8 +10,14 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform float depth;
 
+uniform int depthEnabled;
+
 void main()
 {
-    gl_Position = projection * view * vec4(currentCoord, depth);
+    if(depthEnabled == 1) {
+        gl_Position = projection * view * vec4(currentCoord, depth);
+    } else if(depthEnabled == 0) {
+        gl_Position = vec4(currentCoord, 1.0);
+    }
     TexCoord = currentTexCoord;
 }

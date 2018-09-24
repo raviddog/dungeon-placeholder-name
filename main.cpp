@@ -380,6 +380,9 @@ int main(int argc, char *args[])
     glClear(GL_COLOR_BUFFER_BIT);
     stbi_set_flip_vertically_on_load(true);
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+
 
     float vertices[] = {
         //location              //texture coord
@@ -388,18 +391,23 @@ int main(int argc, char *args[])
         -1.0f, 1.0f, 10.0f,     1.0f, 1.0f,
         -1.0f, 1.0f, -10.0f,    0.0f, 1.0f,
 
-        1.0f, -1.0f, -10.0f,     0.0f, 1.0f,
+        1.0f, -1.0f, -10.0f,    0.0f, 1.0f,
         1.0f, -1.0f, 10.0f,     1.0f, 1.0f,
         1.0f, 1.0f, 10.0f,      1.0f, 0.0f,
-        1.0f, 1.0f, -10.0f,     0.0f, 0.0f
+        1.0f, 1.0f, -10.0f,     0.0f, 0.0f,
+
+        -0.5f, -0.5f, 0.0f,     0.0f, 0.0f,
+        0.5f, -0.5f, 0.0f,      1.0f, 0.0f,
+        0.5f, 0.5f, 0.0f,       1.0f, 1.0f,
+        -0.5f, 0.5f, 0.0f,      0.0f, 1.0f
     };
 
     float fade[] = {
         -0.5f, -0.5f, 0.0f,
         0.5f, -0.5f, 0.0f,
-        0.5f, 0.5f, 0.0f,
-        -0.5f, 0.5f, 0.0f,
-        0.0f, 0.0f, 1.0f
+        0.5f, 0.8f, 0.0f,
+        -0.5f, 0.8f, 0.0f,
+        0.0f, 0.0f, 2.0f
     };
 
     uint32_t indices[] = {
@@ -410,10 +418,13 @@ int main(int argc, char *args[])
         1, 5, 4,
 
         4, 5, 6,
-        4, 7, 6
+        4, 7, 6,
+
+        8, 9, 10,
+        8, 11, 10
     };
 
-    uint32_t fade_i[] = {
+    uint32_t fade_i[] {
         0, 1, 4,
         1, 2, 4,
         2, 3, 4,
@@ -444,22 +455,28 @@ int main(int argc, char *args[])
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
 
+    glBindVertexArray(0);
+
+    
 
     glGenVertexArrays(1, &VAO2);
     glBindVertexArray(VAO2);
 
     glGenBuffers(1, &VBO2);
     glGenBuffers(1, &EBO2);
-    
+
     glBindBuffer(GL_ARRAY_BUFFER, VBO2);
     glBufferData(GL_ARRAY_BUFFER, sizeof(fade), fade, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO2);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(fade_i), fade_i, GL_STATIC_DRAW);
-    
+
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
     glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)(2*sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -469,10 +486,10 @@ int main(int argc, char *args[])
 
     int imgWidth, imgHeight, imgChannels;
     unsigned char *data = stbi_load("wall.jpg", &imgWidth, &imgHeight, &imgChannels, 0);
-    uint32_t texture, texture2;
-    glGenTextures(1, &texture);
+    uint32_t texture[2];
+    glGenTextures(2, texture);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(GL_TEXTURE_2D, texture[0]);
 
     if(data) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -482,12 +499,11 @@ int main(int argc, char *args[])
     stbi_image_free(data);
 
     data = stbi_load("fog.png", &imgWidth, &imgHeight, &imgChannels, 0);
-    glGenTextures(1, &texture2);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texture2);
+    glBindTexture(GL_TEXTURE_2D, texture[1]);
 
     if(data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imgWidth, imgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
 
@@ -522,10 +538,10 @@ int main(int argc, char *args[])
             view = glm::translate(view, glm::vec3(0.0f, 0.0f, -0.001f));
         }
         if(keyState[kbA]) {
-            view = glm::translate(view, glm::vec3(0.001f, 0.0f, 0.0f));
+            //view = glm::translate(view, glm::vec3(0.001f, 0.0f, 0.0f));
         }
         if(keyState[kbD]) {
-            view = glm::translate(view, glm::vec3(-0.001f, 0.0f, 0.0f));
+            //view = glm::translate(view, glm::vec3(-0.001f, 0.0f, 0.0f));
         }
 
         
@@ -537,17 +553,21 @@ int main(int argc, char *args[])
         shader2d.use();
         shader2d.setMat4("view", view);
         shader2d.setInt("texture1", 0);
+        shader2d.setInt("depthEnabled", 1);
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
 
-        
-        glBindVertexArray(VAO2);
         shadow.use();
-        glDrawElements(GL_TRIANGLES, 2, GL_UNSIGNED_INT, 0);
-        //shader2d.setMat4("model", modelR);
-        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)));
+        glBindVertexArray(VAO2);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);    
+    
+        //shader2d.setInt("depthEnabled", 0);
+        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)));
+
         SDL_GL_SwapWindow(window);
     }
+
+    
 
     SDL_GL_DeleteContext(maincontext);
     SDL_DestroyWindow(window);
