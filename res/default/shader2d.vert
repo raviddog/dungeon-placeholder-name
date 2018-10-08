@@ -15,7 +15,7 @@ uniform int depthEnabled;
 void main()
 {
     if(depthEnabled == 1) {
-        gl_Position = projection * view * vec4(currentCoord, depth);
+        gl_Position = projection * view * model * vec4(currentCoord, depth);
     } else if(depthEnabled == 0) {
         gl_Position = vec4(currentCoord, 1.0);
     }
