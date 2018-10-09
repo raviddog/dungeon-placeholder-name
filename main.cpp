@@ -428,10 +428,10 @@ int main(int argc, char *args[])
         0.5f, 1.0f, -1.0f,      0.0f, 0.0f,
         //right close wall
         0.5f, -1.0f, 1.0f,      1.0f, 1.0f,
-        0.5f, -1.0f, 1.5f,      0.75f, 1.0f,
-        1.0f, -1.0f, 1.5f,      0.5f, 1.0f,
-        1.0f, 1.0f, 1.5f,       0.5f, 0.0f,
-        0.5f, 1.0f, 1.5f,       0.75f, 0.0f,
+        0.5f, -1.0f, 0.5f,      0.75f, 1.0f,
+        1.0f, -1.0f, 0.5f,      0.5f, 1.0f,
+        1.0f, 1.0f, 0.5f,       0.5f, 0.0f,
+        0.5f, 1.0f, 0.5f,       0.75f, 0.0f,
         0.5f, 1.0f, 1.0f,       1.0f, 0.0f
 
 
@@ -553,23 +553,23 @@ int main(int argc, char *args[])
     //   [1][2][3]
     //      [0]
     //
+
+    model[0] = glm::translate(model[0], glm::vec3(0.0f, 0.0f, 1.0f));
+    model[1] = glm::translate(model[1], glm::vec3(-2.0f, 0.0f, -1.0f));
+    model[2] = glm::translate(model[2], glm::vec3(0.0f, 0.0f, -1.0f));
+    model[3] = glm::translate(model[3], glm::vec3(2.0f, 0.0f, -1.0f));
+
     model[1] = glm::rotate(model[1], glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     model[3] = glm::rotate(model[3], glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-    model[0] = glm::translate(model[0], glm::vec3(0.0f, 0.0f, 0.0f));
-    model[1] = glm::translate(model[1], glm::vec3(-1.0f, 0.0f, -2.0f));
-    model[2] = glm::translate(model[2], glm::vec3(0.0f, 0.0f, -2.0f));
-    model[3] = glm::translate(model[3], glm::vec3(1.0f, 0.0f, -2.0f));
-
 
     glm::mat4 view;
     // note that we're translating the scene in the reverse direction of where we want to move
     //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -2.0f)); 
 
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 eye = glm::vec3(0.0f, 0.0f, -2.0f);
+    glm::vec3 eye = glm::vec3(0.0f, 0.0f, 2.0f);
 
-    float angle = 0.0f;
+    float angle = 180.0f;
     float dirX = sin(glm::radians(angle));
     float dirZ = cos(glm::radians(angle));
 
@@ -578,7 +578,7 @@ int main(int argc, char *args[])
 
     view = glm::lookAt(eye, eye + direction, up);
 
-    float cameraSpeed = 0.1f;
+    float cameraSpeed = 0.05f;
 
     /*
     glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  3.0f);
@@ -617,7 +617,7 @@ int main(int argc, char *args[])
     while(!quit) {
         inputs();
         
-        /*
+        
         if(moveState == 0) {
             //not moving
             if(keyPressed[kbW]) {
@@ -626,12 +626,18 @@ int main(int argc, char *args[])
             if(keyPressed[kbS]) {
                 moveState = 2;
             }
+            if(keyPressed[kbA]) {
+                moveState = 3;
+            }
+            if(keyPressed[kbD]) {
+                moveState = 4;
+            }
         } else if(moveState == 1) {
             //moving forwards
             static int timer = 0;
             timer += 1;
-            view = glm::translate(view, glm::vec3(0.0f, 0.0f, 0.1f));
-            if(timer > 60) {
+            eye += direction * cameraSpeed;
+            if(timer > 40) {
                 timer = 0;
                 moveState = 0;
             }
@@ -639,13 +645,40 @@ int main(int argc, char *args[])
             //moving backwards
             static int timer = 0;
             timer += 1;
-            view = glm::translate(view, glm::vec3(0.0f, 0.0f, -0.1f));
-            if(timer > 60) {
+            eye -= direction * cameraSpeed;
+            if(timer > 40) {
                 timer = 0;
                 moveState = 0;
             }
-        }*/
+        } else if(moveState == 3) {
+            static int timer = 0;
+            timer += 1;
+            if(timer < 20) {
+                eye += direction * cameraSpeed;
+            } else if(timer < 60) {
+                angle += cameraSpeed * 45;
+            } else if(timer < 80) {
+                eye += direction * cameraSpeed;
+            } else if(timer > 80) {
+                timer = 0;
+                moveState = 0;
+            }
+        } else if(moveState == 4) {
+            static int timer = 0;
+            timer += 1;
+            if(timer < 20) {
+                eye += direction * cameraSpeed;
+            } else if(timer < 60) {
+                angle -= cameraSpeed * 45;
+            } else if(timer < 80) {
+                eye += direction * cameraSpeed;
+            } else if(timer > 80) {
+                timer = 0;
+                moveState = 0;
+            }
+        }
 
+        /*
         if(keyState[kbW]) {
             //cameraPos += cameraSpeed * cameraFront;
             //view = glm::translate(view, glm::vec3(0.0f, 0.0f, 0.1f));
@@ -673,6 +706,12 @@ int main(int argc, char *args[])
         if(keyState[kbE]) {
             //view = glm::rotate(view, glm::radians(1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
             angle -= cameraSpeed * 10;
+        }*/
+
+        if(angle > 360.0f) {
+            angle -= 360.0f;
+        } else if(angle < -360.0f) {
+            angle += 360.0f;
         }
 
         dirX = sin(glm::radians(angle));
@@ -689,7 +728,6 @@ int main(int argc, char *args[])
         shader2d.use();
         shader2d.setMat4("view", view);
         shader2d.setInt("texture1", 0);
-        shader2d.setInt("depthEnabled", 1);
         glBindVertexArray(VAO);
         
         //straight
@@ -699,15 +737,22 @@ int main(int argc, char *args[])
 
         //straight
         shader2d.setMat4("model", model[1]);
-        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        //glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
 
         //left open, right closed
         shader2d.setMat4("model", model[2]);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
+        //glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
         glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)));
         glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 6);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 12);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 18);
 
+        shader2d.setMat4("model", model[3]);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)));
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 6);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 12);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 18);
 
 
         shadow.use();
