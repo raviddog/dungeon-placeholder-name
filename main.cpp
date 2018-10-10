@@ -39,6 +39,445 @@ enum keyCodes{
     kbInsert, kbHome, kbPgup, kbDelete, kbEnd, kbPgdn
 };
 
+enum dgDrawBlockType{
+    dgSS, dgOS, dgSO, dgOO  //straight straight, open straight, etc
+};
+
+void inputs(), dgDrawBlock(dgDrawBlockType, int);
+
+glm::mat4 model[4];
+
+int main(int argc, char *args[])
+{
+    if(SDL_Init(SDL_INIT_EVERYTHING) < 0) {
+        return false;
+    }
+
+    SDL_GL_LoadLibrary(NULL);
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    
+    window = SDL_CreateWindow(
+        "opengl test",
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        640,
+        480,
+        SDL_WINDOW_OPENGL
+    );
+
+
+    maincontext =  SDL_GL_CreateContext(window);
+    gladLoadGLLoader(SDL_GL_GetProcAddress);
+      
+    SDL_GL_SetSwapInterval(1);
+
+    glViewport(0, 0, 640, 480);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    stbi_set_flip_vertically_on_load(true);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+    glEnable(GL_DEPTH_TEST);
+
+
+    float vertices[] = {
+        //location              //texture coord
+       
+        //left wall
+        -1.0f, -1.0f, -2.0f,     0.0f, 0.0f,
+        -1.0f, -1.0f, 2.0f,     1.0f, 0.0f,
+        -1.0f, 1.0f, 2.0f,      1.0f, 1.0f,
+        -1.0f, 1.0f, -2.0f,      0.0f, 1.0f,
+        //right wall
+        1.0f, -1.0f, -2.0f,     0.0f, 1.0f,
+        1.0f, -1.0f, 2.0f,      1.0f, 1.0f,
+        1.0f, 1.0f, 2.0f,       1.0f, 0.0f,
+        1.0f, 1.0f, -2.0f,      0.0f, 0.0f,
+
+        //left far wall
+        -1.0f, -1.0f, -2.0f,    0.0f, 0.0f,
+        -1.0f, -1.0f, -1.0f,    0.25f, 0.0f,
+        -2.0f, -1.0f, -1.0f,    0.5f, 0.0f,
+        -2.0f, 1.0f, -1.0f,     0.5f, 1.0f,
+        -1.0f, 1.0f, -1.0f,     0.25f, 1.0f,
+        -1.0f, 1.0f, -2.0f,     0.0f, 1.0f,
+        //left close wall
+        -1.0f, -1.0f, 2.0f,     1.0f, 1.0f,
+        -1.0f, -1.0f, 1.0f,     0.75f, 1.0f,
+        -2.0f, -1.0f, 1.0f,     0.5f, 1.0f,
+        -2.0f, 1.0f, 1.0f,      0.5f, 0.0f,
+        -1.0f, 1.0f, 1.0f,      0.75f, 0.0f,
+        -1.0f, 1.0f, 2.0f,      1.0f, 0.0f,
+
+        //right far wall
+        1.0f, -1.0f, -2.0f,     0.0f, 1.0f,
+        1.0f, -1.0f, -1.0f,     0.25f, 1.0f,
+        2.0f, -1.0f, -1.0f,     0.5f, 1.0f,
+        2.0f, 1.0f, -1.0f,      0.5f, 0.0f,
+        1.0f, 1.0f, -1.0f,      0.25f, 0.0f,
+        1.0f, 1.0f, -2.0f,      0.0f, 0.0f,
+        //right close wall
+        1.0f, -1.0f, 2.0f,      1.0f, 1.0f,
+        1.0f, -1.0f, 1.0f,      0.75f, 1.0f,
+        2.0f, -1.0f, 1.0f,      0.5f, 1.0f,
+        2.0f, 1.0f, 1.0f,       0.5f, 0.0f,
+        1.0f, 1.0f, 1.0f,       0.75f, 0.0f,
+        1.0f, 1.0f, 2.0f,       1.0f, 0.0f
+
+
+    };
+
+    float fade[] = {
+        -0.5f, -0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+        0.5f, 0.8f, 0.0f,
+        -0.5f, 0.8f, 0.0f,
+        0.0f, 0.0f, 2.0f
+    };
+
+    uint32_t indices[] = {
+        //straight, add 4 for right side
+        0, 1, 2,
+        0, 3, 2,
+
+        //far left open
+        //add 6 for close left, 12 for right close, 18 for right far
+        8, 9, 12,
+        8, 13, 12,
+        9, 10, 11,
+        9, 12, 11
+    };
+
+    uint32_t fade_i[] {
+        0, 1, 4,
+        1, 2, 4,
+        2, 3, 4,
+        3, 0, 4
+    };
+
+    shader2d.load("./shader2d.vert", "./shader2d.frag");
+    shadow.load("./shadow.vert", "./shadow.frag");
+    //shader3d.load("./shader3d.vert", "./shader3d.frag");
+    shader2d.use();
+    curShader = &shader2d;
+
+    uint32_t VAO, VBO, EBO, VBO2, VAO2, EBO2;
+    
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+
+    
+
+    glGenVertexArrays(1, &VAO2);
+    glBindVertexArray(VAO2);
+
+    glGenBuffers(1, &VBO2);
+    glGenBuffers(1, &EBO2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(fade), fade, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO2);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(fade_i), fade_i, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)(2*sizeof(float)));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    
+
+
+    int imgWidth, imgHeight, imgChannels;
+    unsigned char *data = stbi_load("wall.jpg", &imgWidth, &imgHeight, &imgChannels, 0);
+    uint32_t texture[2];
+    glGenTextures(2, texture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture[0]);
+
+    if(data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+
+    
+    stbi_image_free(data);
+
+    data = stbi_load("fog.png", &imgWidth, &imgHeight, &imgChannels, 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture[1]);
+
+    if(data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imgWidth, imgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+
+    stbi_image_free(data);
+    
+
+    //glm::mat4 model[4];
+    //
+    //      -z
+    //   -x    +x
+    //      +z
+    //
+    //   [1][2][3]
+    //      [0]
+    //
+
+    model[0] = glm::translate(model[0], glm::vec3(0.0f, 0.0f, 0.0f));
+    model[1] = glm::translate(model[1], glm::vec3(-4.0f, 0.0f, -4.0f));
+    model[2] = glm::translate(model[2], glm::vec3(0.0f, 0.0f, -4.0f));
+    model[3] = glm::translate(model[3], glm::vec3(4.0f, 0.0f, -4.0f));
+
+    model[1] = glm::rotate(model[1], glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    model[3] = glm::rotate(model[3], glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    glm::mat4 view;
+    // note that we're translating the scene in the reverse direction of where we want to move
+    //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -2.0f)); 
+
+    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 eye = glm::vec3(0.0f, 0.0f, 2.0f);
+
+    float angle = 180.0f;
+    float dirX = sin(glm::radians(angle));
+    float dirZ = cos(glm::radians(angle));
+
+    glm::vec3 direction = glm::vec3(dirX, 0.0f, dirZ);
+    direction = glm::normalize(direction);
+
+    view = glm::lookAt(eye, eye + direction, up);
+
+    float cameraSpeed = 0.05f;
+
+    /*
+    glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  3.0f);
+    glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
+
+
+    float cameraSpeed = 0.05f;
+
+    glm::vec3 front;
+    float pitch, yaw;
+    pitch = 0.0, yaw = 0.0;
+    front.x = cos(glm::radians(pitch)) * cos(glm::radians(yaw));
+    front.y = sin(glm::radians(pitch));
+    front.z = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
+    cameraFront = glm::normalize(front);
+
+
+    glm::mat4 view;
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
+    */
+
+    glm::mat4 projection;
+    projection = glm::perspective(glm::radians(75.0f), (float)640 / (float)480, 0.1f, 100.0f);
+
+    //shader2d.setMat4("model", model);
+    shader2d.setMat4("view", view);
+    shader2d.setMat4("projection", projection);
+    shader2d.setFloat("depth", 1.0f);
+
+
+
+    bool inputEnabled;
+    int moveState = 0;
+    while(!quit) {
+        inputs();
+        
+        
+        if(moveState == 0) {
+            //not moving
+            if(keyPressed[kbW]) {
+                moveState = 1;
+            }
+            if(keyPressed[kbS]) {
+                moveState = 2;
+            }
+            if(keyPressed[kbA]) {
+                moveState = 3;
+            }
+            if(keyPressed[kbD]) {
+                moveState = 4;
+            }
+        } else if(moveState == 1) {
+            //moving forwards
+            static int timer = 0;
+            timer += 1;
+            eye += direction * cameraSpeed;
+            if(timer > 80) {
+                timer = 0;
+                moveState = 0;
+            }
+        } else if(moveState == 2) {
+            //moving backwards
+            static int timer = 0;
+            timer += 1;
+            eye -= direction * cameraSpeed;
+            if(timer > 80) {
+                timer = 0;
+                moveState = 0;
+            }
+        } else if(moveState == 3) {
+            static int timer = 0;
+            timer += 1;
+            if(timer < 40) {
+                eye += direction * cameraSpeed;
+            } else if(timer < 80) {
+                angle += cameraSpeed * 45;
+            } else if(timer < 120) {
+                eye += direction * cameraSpeed;
+            } else if(timer > 120) {
+                timer = 0;
+                moveState = 0;
+            }
+        } else if(moveState == 4) {
+            static int timer = 0;
+            timer += 1;
+            if(timer < 40) {
+                eye += direction * cameraSpeed;
+            } else if(timer < 80) {
+                angle -= cameraSpeed * 45;
+            } else if(timer < 120) {
+                eye += direction * cameraSpeed;
+            } else if(timer > 120) {
+                timer = 0;
+                moveState = 0;
+            }
+        }
+
+        /*
+        if(keyState[kbW]) {
+            //cameraPos += cameraSpeed * cameraFront;
+            //view = glm::translate(view, glm::vec3(0.0f, 0.0f, 0.1f));
+            eye += direction * cameraSpeed;
+        }
+        if(keyState[kbS]) {
+            //cameraPos -= cameraSpeed * cameraFront;
+            //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -0.1f));
+            eye -= direction * cameraSpeed;
+        }
+        if(keyState[kbA]) {
+            //cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+            //view = glm::translate(view, glm::vec3(0.1f, 0.0f, 0.0f));
+            eye += glm::vec3(direction.z, 0.0f, -direction.x) * cameraSpeed;
+        }
+        if(keyState[kbD]) {
+            //cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+            //view = glm::translate(view, glm::vec3(-0.1f, 0.0f, 0.0f));
+            eye -= glm::vec3(direction.z, 0.0f, -direction.x) * cameraSpeed;
+        }
+        if(keyState[kbQ]) {
+            //view = glm::rotate(view, glm::radians(-1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            angle += cameraSpeed * 10;
+        }
+        if(keyState[kbE]) {
+            //view = glm::rotate(view, glm::radians(1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            angle -= cameraSpeed * 10;
+        }*/
+
+        if(angle > 360.0f) {
+            angle -= 360.0f;
+        } else if(angle < -360.0f) {
+            angle += 360.0f;
+        }
+
+        dirX = sin(glm::radians(angle));
+        dirZ = cos(glm::radians(angle));
+        direction = glm::normalize(glm::vec3(dirX, 0.0f, dirZ));
+        view = glm::lookAt(eye, eye + direction, up);
+
+        
+        //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+        //view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        shader2d.use();
+        shader2d.setMat4("view", view);
+        shader2d.setInt("texture1", 0);
+        glBindVertexArray(VAO);
+        
+        /*
+        //straight
+        shader2d.setMat4("model", model[0]);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
+
+        //straight
+        shader2d.setMat4("model", model[1]);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
+
+        //left open, right closed
+        shader2d.setMat4("model", model[2]);
+        //glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)));
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 6);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 12);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 18);
+
+        shader2d.setMat4("model", model[3]);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)));
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 6);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 12);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 18);
+*/
+
+        dgDrawBlock(dgSS, 0);
+        dgDrawBlock(dgSS, 1);
+        dgDrawBlock(dgOO, 2);
+        dgDrawBlock(dgOO, 3);
+
+        shadow.use();
+        glBindVertexArray(VAO2);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);    
+    
+        //shader2d.setInt("depthEnabled", 0);
+        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)));
+
+        SDL_GL_SwapWindow(window);
+    }
+
+    
+
+    SDL_GL_DeleteContext(maincontext);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+
+    return true;
+}
+
 void inputs()
 {
     static SDL_Event e;
@@ -322,6 +761,34 @@ void inputs()
     }
 }
 
+void dgDrawBlock(dgDrawBlockType block, int loc) {
+    if(curShader != &shader2d) {
+        shader2d.use();
+        curShader = &shader2d;
+    }
+
+    shader2d.setMat4("model", model[loc]);
+    if(block == dgSS) {
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
+    } else if (block == dgOS) {
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)));
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 6);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
+    } else if (block == dgSO) {
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 12);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 18);
+    } else if(block == dgOO) {
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)));
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 6);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 12);
+        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 18);
+    }
+
+}
+
+
 class GL_tex {
     //have 2 shaders for each 2d and 3d
 
@@ -352,424 +819,3 @@ class scrImage: public GL_tex {
 class scrParticle: public GL_tex {
     //limited functionality 2d image, or maybe its a thing that handles many
 };
-
-int main(int argc, char *args[])
-{
-    if(SDL_Init(SDL_INIT_EVERYTHING) < 0) {
-        return false;
-    }
-
-    SDL_GL_LoadLibrary(NULL);
-
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    
-    window = SDL_CreateWindow(
-        "opengl test",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        640,
-        480,
-        SDL_WINDOW_OPENGL
-    );
-
-
-    maincontext =  SDL_GL_CreateContext(window);
-    gladLoadGLLoader(SDL_GL_GetProcAddress);
-      
-    SDL_GL_SetSwapInterval(1);
-
-    glViewport(0, 0, 640, 480);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    stbi_set_flip_vertically_on_load(true);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
-    glEnable(GL_DEPTH_TEST);
-
-
-    float vertices[] = {
-        //location              //texture coord
-       
-        //left wall
-        -0.5f, -1.0f, -1.0f,     0.0f, 0.0f,
-        -0.5f, -1.0f, 1.0f,     1.0f, 0.0f,
-        -0.5f, 1.0f, 1.0f,      1.0f, 1.0f,
-        -0.5f, 1.0f, -1.0f,      0.0f, 1.0f,
-        //right wall
-        0.5f, -1.0f, -1.0f,     0.0f, 1.0f,
-        0.5f, -1.0f, 1.0f,      1.0f, 1.0f,
-        0.5f, 1.0f, 1.0f,       1.0f, 0.0f,
-        0.5f, 1.0f, -1.0f,      0.0f, 0.0f,
-
-        //left far wall
-        -0.5f, -1.0f, -1.0f,    0.0f, 0.0f,
-        -0.5f, -1.0f, -0.5f,    0.25f, 0.0f,
-        -1.0f, -1.0f, -0.5f,    0.5f, 0.0f,
-        -1.0f, 1.0f, -0.5f,     0.5f, 1.0f,
-        -0.5f, 1.0f, -0.5f,     0.25f, 1.0f,
-        -0.5f, 1.0f, -1.0f,     0.0f, 1.0f,
-        //left close wall
-        -0.5f, -1.0f, 1.0f,     0.0f, 0.0f,
-        -0.5f, -1.0f, 0.5f,     0.25f, 0.0f,
-        -1.0f, -1.0f, 0.5f,     0.5f, 0.0f,
-        -1.0f, 1.0f, 0.5f,      0.5f, 1.0f,
-        -0.5f, 1.0f, 0.5f,      0.25f, 1.0f,
-        -0.5f, 1.0f, 1.0f,      0.0f, 1.0f,
-
-        //right far wall
-        0.5f, -1.0f, -1.0f,     0.0f, 1.0f,
-        0.5f, -1.0f, -0.5f,     0.25f, 1.0f,
-        1.0f, -1.0f, -0.5f,     0.5f, 1.0f,
-        1.0f, 1.0f, -0.5f,      0.5f, 0.0f,
-        0.5f, 1.0f, -0.5f,      0.25f, 0.0f,
-        0.5f, 1.0f, -1.0f,      0.0f, 0.0f,
-        //right close wall
-        0.5f, -1.0f, 1.0f,      1.0f, 1.0f,
-        0.5f, -1.0f, 0.5f,      0.75f, 1.0f,
-        1.0f, -1.0f, 0.5f,      0.5f, 1.0f,
-        1.0f, 1.0f, 0.5f,       0.5f, 0.0f,
-        0.5f, 1.0f, 0.5f,       0.75f, 0.0f,
-        0.5f, 1.0f, 1.0f,       1.0f, 0.0f
-
-
-    };
-
-    float fade[] = {
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.5f, 0.8f, 0.0f,
-        -0.5f, 0.8f, 0.0f,
-        0.0f, 0.0f, 2.0f
-    };
-
-    uint32_t indices[] = {
-        //straight, add 4 for right side
-        0, 1, 2,
-        0, 3, 2,
-
-        //far left open
-        //add 6 for close left, 12 for right close, 18 for right far
-        8, 9, 12,
-        8, 13, 12,
-        9, 10, 11,
-        9, 12, 11
-    };
-
-    uint32_t fade_i[] {
-        0, 1, 4,
-        1, 2, 4,
-        2, 3, 4,
-        3, 0, 4
-    };
-
-    shader2d.load("./shader2d.vert", "./shader2d.frag");
-    shadow.load("./shadow.vert", "./shadow.frag");
-    //shader3d.load("./shader3d.vert", "./shader3d.frag");
-    shader2d.use();
-    curShader = &shader2d;
-
-    uint32_t VAO, VBO, EBO, VBO2, VAO2, EBO2;
-    
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
-
-    
-
-    glGenVertexArrays(1, &VAO2);
-    glBindVertexArray(VAO2);
-
-    glGenBuffers(1, &VBO2);
-    glGenBuffers(1, &EBO2);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(fade), fade, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO2);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(fade_i), fade_i, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)(2*sizeof(float)));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
-
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    
-
-
-    int imgWidth, imgHeight, imgChannels;
-    unsigned char *data = stbi_load("wall.jpg", &imgWidth, &imgHeight, &imgChannels, 0);
-    uint32_t texture[2];
-    glGenTextures(2, texture);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture[0]);
-
-    if(data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-
-    
-    stbi_image_free(data);
-
-    data = stbi_load("fog.png", &imgWidth, &imgHeight, &imgChannels, 0);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texture[1]);
-
-    if(data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imgWidth, imgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-
-    stbi_image_free(data);
-    
-
-    glm::mat4 model[4];
-    //
-    //   [1][2][3]
-    //      [0]
-    //
-
-    model[0] = glm::translate(model[0], glm::vec3(0.0f, 0.0f, 1.0f));
-    model[1] = glm::translate(model[1], glm::vec3(-2.0f, 0.0f, -1.0f));
-    model[2] = glm::translate(model[2], glm::vec3(0.0f, 0.0f, -1.0f));
-    model[3] = glm::translate(model[3], glm::vec3(2.0f, 0.0f, -1.0f));
-
-    model[1] = glm::rotate(model[1], glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    model[3] = glm::rotate(model[3], glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-    glm::mat4 view;
-    // note that we're translating the scene in the reverse direction of where we want to move
-    //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -2.0f)); 
-
-    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 eye = glm::vec3(0.0f, 0.0f, 2.0f);
-
-    float angle = 180.0f;
-    float dirX = sin(glm::radians(angle));
-    float dirZ = cos(glm::radians(angle));
-
-    glm::vec3 direction = glm::vec3(dirX, 0.0f, dirZ);
-    direction = glm::normalize(direction);
-
-    view = glm::lookAt(eye, eye + direction, up);
-
-    float cameraSpeed = 0.05f;
-
-    /*
-    glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  3.0f);
-    glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-    glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
-
-
-    float cameraSpeed = 0.05f;
-
-    glm::vec3 front;
-    float pitch, yaw;
-    pitch = 0.0, yaw = 0.0;
-    front.x = cos(glm::radians(pitch)) * cos(glm::radians(yaw));
-    front.y = sin(glm::radians(pitch));
-    front.z = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
-    cameraFront = glm::normalize(front);
-
-
-    glm::mat4 view;
-    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
-    */
-
-    glm::mat4 projection;
-    projection = glm::perspective(glm::radians(45.0f), (float)640 / (float)480, 0.1f, 100.0f);
-
-    //shader2d.setMat4("model", model);
-    shader2d.setMat4("view", view);
-    shader2d.setMat4("projection", projection);
-    shader2d.setFloat("depth", 1.0f);
-
-
-
-    bool inputEnabled;
-    int moveState = 0;
-    while(!quit) {
-        inputs();
-        
-        
-        if(moveState == 0) {
-            //not moving
-            if(keyPressed[kbW]) {
-                moveState = 1;
-            }
-            if(keyPressed[kbS]) {
-                moveState = 2;
-            }
-            if(keyPressed[kbA]) {
-                moveState = 3;
-            }
-            if(keyPressed[kbD]) {
-                moveState = 4;
-            }
-        } else if(moveState == 1) {
-            //moving forwards
-            static int timer = 0;
-            timer += 1;
-            eye += direction * cameraSpeed;
-            if(timer > 40) {
-                timer = 0;
-                moveState = 0;
-            }
-        } else if(moveState == 2) {
-            //moving backwards
-            static int timer = 0;
-            timer += 1;
-            eye -= direction * cameraSpeed;
-            if(timer > 40) {
-                timer = 0;
-                moveState = 0;
-            }
-        } else if(moveState == 3) {
-            static int timer = 0;
-            timer += 1;
-            if(timer < 20) {
-                eye += direction * cameraSpeed;
-            } else if(timer < 60) {
-                angle += cameraSpeed * 45;
-            } else if(timer < 80) {
-                eye += direction * cameraSpeed;
-            } else if(timer > 80) {
-                timer = 0;
-                moveState = 0;
-            }
-        } else if(moveState == 4) {
-            static int timer = 0;
-            timer += 1;
-            if(timer < 20) {
-                eye += direction * cameraSpeed;
-            } else if(timer < 60) {
-                angle -= cameraSpeed * 45;
-            } else if(timer < 80) {
-                eye += direction * cameraSpeed;
-            } else if(timer > 80) {
-                timer = 0;
-                moveState = 0;
-            }
-        }
-
-        /*
-        if(keyState[kbW]) {
-            //cameraPos += cameraSpeed * cameraFront;
-            //view = glm::translate(view, glm::vec3(0.0f, 0.0f, 0.1f));
-            eye += direction * cameraSpeed;
-        }
-        if(keyState[kbS]) {
-            //cameraPos -= cameraSpeed * cameraFront;
-            //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -0.1f));
-            eye -= direction * cameraSpeed;
-        }
-        if(keyState[kbA]) {
-            //cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-            //view = glm::translate(view, glm::vec3(0.1f, 0.0f, 0.0f));
-            eye += glm::vec3(direction.z, 0.0f, -direction.x) * cameraSpeed;
-        }
-        if(keyState[kbD]) {
-            //cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-            //view = glm::translate(view, glm::vec3(-0.1f, 0.0f, 0.0f));
-            eye -= glm::vec3(direction.z, 0.0f, -direction.x) * cameraSpeed;
-        }
-        if(keyState[kbQ]) {
-            //view = glm::rotate(view, glm::radians(-1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-            angle += cameraSpeed * 10;
-        }
-        if(keyState[kbE]) {
-            //view = glm::rotate(view, glm::radians(1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-            angle -= cameraSpeed * 10;
-        }*/
-
-        if(angle > 360.0f) {
-            angle -= 360.0f;
-        } else if(angle < -360.0f) {
-            angle += 360.0f;
-        }
-
-        dirX = sin(glm::radians(angle));
-        dirZ = cos(glm::radians(angle));
-        direction = glm::normalize(glm::vec3(dirX, 0.0f, dirZ));
-        view = glm::lookAt(eye, eye + direction, up);
-
-        
-        //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-        //view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        shader2d.use();
-        shader2d.setMat4("view", view);
-        shader2d.setInt("texture1", 0);
-        glBindVertexArray(VAO);
-        
-        //straight
-        shader2d.setMat4("model", model[0]);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
-
-        //straight
-        shader2d.setMat4("model", model[1]);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
-
-        //left open, right closed
-        shader2d.setMat4("model", model[2]);
-        //glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
-        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)));
-        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 6);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 12);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 18);
-
-        shader2d.setMat4("model", model[3]);
-        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)));
-        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 6);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 12);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 18);
-
-
-        shadow.use();
-        glBindVertexArray(VAO2);
-        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);    
-    
-        //shader2d.setInt("depthEnabled", 0);
-        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)));
-
-        SDL_GL_SwapWindow(window);
-    }
-
-    
-
-    SDL_GL_DeleteContext(maincontext);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-
-    return true;
-}
