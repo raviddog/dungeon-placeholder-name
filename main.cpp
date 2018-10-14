@@ -75,7 +75,7 @@ int main(int argc, char *args[])
     SDL_GL_SetSwapInterval(1);
 
     glViewport(0, 0, 640, 480);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     stbi_set_flip_vertically_on_load(true);
 
@@ -126,17 +126,27 @@ int main(int argc, char *args[])
         2.0f, -1.0f, 1.0f,      0.5f, 1.0f,
         2.0f, 1.0f, 1.0f,       0.5f, 0.0f,
         1.0f, 1.0f, 1.0f,       0.75f, 0.0f,
-        1.0f, 1.0f, 2.0f,       1.0f, 0.0f
+        1.0f, 1.0f, 2.0f,       1.0f, 0.0f,
 
+        //floor - 32
+        -8.0f, -1.0f, -8.0f,    0.0f, 0.0f,
+        -8.0f, -1.0f, 8.0f,     0.0f, 16.0f,
+        8.0f, -1.0f, 8.0f,      16.0f, 16.0f,
+        8.0f, -1.0f, -8.0f,     16.0f, 0.0f,
+        //roof
+        -8.0f, 1.0f, -8.0f,     0.0f, 0.0f,
+        -8.0f, 1.0f, 8.0f,      0.0f, 16.0f,
+        8.0f, 1.0f, 8.0f,       16.0f, 16.0f,
+        8.0f, 1.0f, -8.0f,      16.0f, 0.0f
 
     };
 
     float fade[] = {
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
+        -0.5f, -0.8f, 0.0f,
+        0.5f, -0.8f, 0.0f,
         0.5f, 0.8f, 0.0f,
         -0.5f, 0.8f, 0.0f,
-        0.0f, 0.0f, 2.0f
+        0.0f, 0.0f, 1.5f
     };
 
     uint32_t indices[] = {
@@ -149,7 +159,13 @@ int main(int argc, char *args[])
         8, 9, 12,
         8, 13, 12,
         9, 10, 11,
-        9, 12, 11
+        9, 12, 11,
+
+        //roof & floor
+        32, 33, 34,
+        32, 35, 34,
+        36, 37, 38,
+        36, 39, 38
     };
 
     uint32_t fade_i[] {
@@ -206,8 +222,8 @@ int main(int argc, char *args[])
     glBindVertexArray(0);
 
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -278,30 +294,9 @@ int main(int argc, char *args[])
 
     float cameraSpeed = 0.05f;
 
-    /*
-    glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  3.0f);
-    glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-    glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
-
-
-    float cameraSpeed = 0.05f;
-
-    glm::vec3 front;
-    float pitch, yaw;
-    pitch = 0.0, yaw = 0.0;
-    front.x = cos(glm::radians(pitch)) * cos(glm::radians(yaw));
-    front.y = sin(glm::radians(pitch));
-    front.z = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
-    cameraFront = glm::normalize(front);
-
-
-    glm::mat4 view;
-    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
-    */
 
     glm::mat4 projection;
-    projection = glm::perspective(glm::radians(75.0f), (float)640 / (float)480, 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(90.0f), (float)640 / (float)480, 0.1f, 100.0f);
 
     //shader2d.setMat4("model", model);
     shader2d.setMat4("view", view);
@@ -315,7 +310,7 @@ int main(int argc, char *args[])
     while(!quit) {
         inputs();
         
-        
+        /*
         if(moveState == 0) {
             //not moving
             if(keyPressed[kbW]) {
@@ -335,7 +330,7 @@ int main(int argc, char *args[])
             static int timer = 0;
             timer += 1;
             eye += direction * cameraSpeed;
-            if(timer > 80) {
+            if(timer >= 80) {
                 timer = 0;
                 moveState = 0;
             }
@@ -344,18 +339,18 @@ int main(int argc, char *args[])
             static int timer = 0;
             timer += 1;
             eye -= direction * cameraSpeed;
-            if(timer > 80) {
+            if(timer >= 80) {
                 timer = 0;
                 moveState = 0;
             }
         } else if(moveState == 3) {
             static int timer = 0;
             timer += 1;
-            if(timer < 40) {
+            if(timer <= 40) {
                 eye += direction * cameraSpeed;
-            } else if(timer < 80) {
+            } else if(timer <= 80) {
                 angle += cameraSpeed * 45;
-            } else if(timer < 120) {
+            } else if(timer <= 120) {
                 eye += direction * cameraSpeed;
             } else if(timer > 120) {
                 timer = 0;
@@ -364,47 +359,37 @@ int main(int argc, char *args[])
         } else if(moveState == 4) {
             static int timer = 0;
             timer += 1;
-            if(timer < 40) {
+            if(timer <= 40) {
                 eye += direction * cameraSpeed;
-            } else if(timer < 80) {
+            } else if(timer <= 80) {
                 angle -= cameraSpeed * 45;
-            } else if(timer < 120) {
+            } else if(timer <= 120) {
                 eye += direction * cameraSpeed;
             } else if(timer > 120) {
                 timer = 0;
                 moveState = 0;
             }
-        }
+        }*/
 
-        /*
         if(keyState[kbW]) {
-            //cameraPos += cameraSpeed * cameraFront;
-            //view = glm::translate(view, glm::vec3(0.0f, 0.0f, 0.1f));
             eye += direction * cameraSpeed;
         }
         if(keyState[kbS]) {
-            //cameraPos -= cameraSpeed * cameraFront;
-            //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -0.1f));
             eye -= direction * cameraSpeed;
         }
         if(keyState[kbA]) {
-            //cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-            //view = glm::translate(view, glm::vec3(0.1f, 0.0f, 0.0f));
             eye += glm::vec3(direction.z, 0.0f, -direction.x) * cameraSpeed;
         }
         if(keyState[kbD]) {
-            //cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-            //view = glm::translate(view, glm::vec3(-0.1f, 0.0f, 0.0f));
             eye -= glm::vec3(direction.z, 0.0f, -direction.x) * cameraSpeed;
         }
         if(keyState[kbQ]) {
-            //view = glm::rotate(view, glm::radians(-1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-            angle += cameraSpeed * 10;
+            angle += cameraSpeed * 45;
         }
         if(keyState[kbE]) {
-            //view = glm::rotate(view, glm::radians(1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-            angle -= cameraSpeed * 10;
-        }*/
+            angle -= cameraSpeed * 45;
+        }
+
 
         if(angle > 360.0f) {
             angle -= 360.0f;
@@ -428,40 +413,17 @@ int main(int argc, char *args[])
         shader2d.setInt("texture1", 0);
         glBindVertexArray(VAO);
         
-        /*
-        //straight
-        shader2d.setMat4("model", model[0]);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
-
-        //straight
-        shader2d.setMat4("model", model[1]);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
-
-        //left open, right closed
-        shader2d.setMat4("model", model[2]);
-        //glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 4);
-        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)));
-        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 6);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 12);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 18);
-
-        shader2d.setMat4("model", model[3]);
-        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)));
-        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 6);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 12);
-        glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 18);
-*/
-
         dgDrawBlock(dgSS, 0);
         dgDrawBlock(dgSS, 1);
         dgDrawBlock(dgOO, 2);
         dgDrawBlock(dgOO, 3);
 
+        shader2d.setMat4("model", model[0]);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)));
+
         shadow.use();
         glBindVertexArray(VAO2);
-        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);    
+        //glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);    
     
         //shader2d.setInt("depthEnabled", 0);
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)));
