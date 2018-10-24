@@ -39,13 +39,34 @@ enum keyCodes{
     kbInsert, kbHome, kbPgup, kbDelete, kbEnd, kbPgdn
 };
 
-enum dgDrawBlockType{
-    dgSS, dgOS, dgSO, dgOO  //straight straight, open straight, etc
-};
 
-void inputs(), dgDrawBlock(dgDrawBlockType, int);
 
-glm::mat4 model[4];
+void inputs();
+void drawBlocks();
+void blockInfo();
+
+glm::mat4 model[7];
+
+unsigned char blocks[] = {
+        0x84, 0xFF, 0xFF, 0xFF, 0x06, 0x06, 0x03, 0x05,
+        0xFF, 0x07|0x0F, 0x01, 0x09, 0xFF, 0xFF,
+        0x03, 0x05, 0x04, 0x00, 0x05, 0x09,
+        0x02, 0x09, 0xFF, 0x06, 0x01, 0x08,
+        0x06, 0x00, 0x01, 0x05, 0x04, 0x0C,
+        0xFF, 0x0A, 0x06, 0x09, 0xFF, 0xFF,
+        0xFF, 0x06, 0x05, 0x08, 0xFF, 0xFF
+    };
+/*unsigned char blocks[] = {
+        0x84, 0xFF, 0xFF, 0xFF, 0x06, 0x06, 0x03, 0x05,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01
+    };*/
+
+int camX, camY, blockW, blockH;
 
 int main(int argc, char *args[])
 {
@@ -86,6 +107,45 @@ int main(int argc, char *args[])
 
     float vertices[] = {
         //location              //texture coord
+
+        //bottom
+        -1.0f, -1.0f, 2.0f,     0.0f, 0.0f,
+        -1.0f, -1.0f, 1.0f,     0.5f, 0.0f,
+
+        -1.0f, -1.0f, -1.0f,    1.5f, 0.0f,
+        -1.0f, -1.0f, -2.0f,    2.0f, 0.0f,
+
+        -2.0f, -1.0f, 1.0f,     1.0f, 0.0f,
+        -2.0f, -1.0f, -1.0f,    1.0f, 0.0f,
+
+        1.0f, -1.0f, 2.0f,     0.0f, 0.0f,
+        1.0f, -1.0f, 1.0f,     0.5f, 0.0f,
+
+        1.0f, -1.0f, -1.0f,    1.5f, 0.0f,
+        1.0f, -1.0f, -2.0f,    2.0f, 0.0f,
+
+        2.0f, -1.0f, 1.0f,     1.0f, 0.0f,
+        2.0f, -1.0f, -1.0f,    1.0f, 0.0f,
+
+        //top
+        -1.0f, 1.0f, 2.0f,     0.0f, 1.0f,
+        -1.0f, 1.0f, 1.0f,     0.5f, 1.0f,
+
+        -1.0f, 1.0f, -1.0f,    1.5f, 1.0f,
+        -1.0f, 1.0f, -2.0f,    2.0f, 1.0f,
+
+        -2.0f, 1.0f, 1.0f,     1.0f, 1.0f,
+        -2.0f, 1.0f, -1.0f,    1.0f, 1.0f,
+
+        1.0f, 1.0f, 2.0f,     0.0f, 1.0f,
+        1.0f, 1.0f, 1.0f,     0.5f, 1.0f,
+
+        1.0f, 1.0f, -1.0f,    1.5f, 1.0f,
+        1.0f, 1.0f, -2.0f,    2.0f, 1.0f,
+
+        2.0f, 1.0f, 1.0f,     1.0f, 1.0f,
+        2.0f, 1.0f, -1.0f,    1.0f, 1.0f,
+
        
         //left wall
         -1.0f, -1.0f, -2.0f,     0.0f, 0.0f,
@@ -150,16 +210,33 @@ int main(int argc, char *args[])
     };
 
     uint32_t indices[] = {
-        //straight, add 4 for right side
-        0, 1, 2,
-        0, 3, 2,
+        //bottom open = 0 - 5, 0 + 6
+        //top open = 0 - 5, 2 + 8
+        //left open = 6 - 11,, 0 + 1
+        //right open = 12 - 17, 0 + 1
+        //
+        //bottom closed = 18 - 23
+        //top closed = 18 - 23, +1
+        //left closed = 24 - 29
+        //right closed = 30 - 35
+        0, 1, 13,
+        0, 12, 13,
 
-        //far left open
-        //add 6 for close left, 12 for right close, 18 for right far
-        8, 9, 12,
-        8, 13, 12,
-        9, 10, 11,
-        9, 12, 11,
+        1, 4, 16,
+        1, 13, 16,
+
+        7, 10, 22,
+        7, 19, 22,
+
+        1, 7, 19,
+        1, 13, 19,
+
+        1, 2, 14,
+        1, 13, 14,
+
+        7, 8, 20,
+        7, 19, 20,
+
 
         //roof & floor
         32, 33, 34,
@@ -263,8 +340,8 @@ int main(int argc, char *args[])
     //      -z
     //   -x    +x
     //      +z
-    //
-    //   [1][2][3]
+    //      [5]
+    //[4][1][2][3][6]
     //      [0]
     //
 
@@ -272,16 +349,21 @@ int main(int argc, char *args[])
     model[1] = glm::translate(model[1], glm::vec3(-4.0f, 0.0f, -4.0f));
     model[2] = glm::translate(model[2], glm::vec3(0.0f, 0.0f, -4.0f));
     model[3] = glm::translate(model[3], glm::vec3(4.0f, 0.0f, -4.0f));
+    model[4] = glm::translate(model[4], glm::vec3(-8.0f, 0.0f, -4.0f));
+    model[5] = glm::translate(model[5], glm::vec3(0.0f, 0.0f, -8.0f));
+    model[6] = glm::translate(model[6], glm::vec3(8.0f, 0.0f, -4.0f));
 
-    model[1] = glm::rotate(model[1], glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    model[3] = glm::rotate(model[3], glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    //model[1] = glm::rotate(model[1], glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    //model[3] = glm::rotate(model[3], glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    //model[4] = glm::rotate(model[4], glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    //model[6] = glm::rotate(model[6], glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
     glm::mat4 view;
     // note that we're translating the scene in the reverse direction of where we want to move
     //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -2.0f)); 
 
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 eye = glm::vec3(0.0f, 0.0f, 2.0f);
+    glm::vec3 eye = glm::vec3(0.0f, 0.0f, -2.0f);
 
     float angle = 180.0f;
     float dirX = sin(glm::radians(angle));
@@ -304,91 +386,227 @@ int main(int argc, char *args[])
     shader2d.setFloat("depth", 1.0f);
 
 
+    /*
+        The way I go about handling the blocks needs to change
+        It's currently too complicated, instead each block needs to have data
+        describing if each side is open or closed, then its a simple matter of just
+        drawing either a wall or a path, and they'll all connect in the middle.
+
+        need a char array and a size
+        first 8 bytes are header
+        leave 2 as a type code
+        0xFF for no data
+
+        0x84 id
+        bytes 2-4 0
+        byte 5/6 width height
+        byte 7/8 spawn coordinates
+        ^ can also be randomised maybe
+
+        
+        Also gotta implement draw distance
+
+    */
+    //Top = 1, Left = 2, Bottom = 4, Right = 8
+    //Portal = 0F
+    //
+    //  If there isn't a wall, it's a passage.
+    //  ____            ____        
+    //   01    | 02    | 03     _04_
+    //  ____            ____    
+    //  _05_   |_06_   |_07_     08 | 
+    //  ____            ____    
+    //   09 |  | 0A |  | 0B |   _0C_|
+    //  ____            ____
+    //  _0D_|  |_0E_|  |_0F_|    FF
+
+    
+
 
     bool inputEnabled;
     int moveState = 0;
+
+    blockInfo();
+    bool moveType = true;
     while(!quit) {
         inputs();
         
-        /*
-        if(moveState == 0) {
-            //not moving
-            if(keyPressed[kbW]) {
-                moveState = 1;
+        if(keyPressed[kbZ]) {
+            if(moveType) {
+                moveType = false;
+            } else {
+                moveType = true;
             }
-            if(keyPressed[kbS]) {
-                moveState = 2;
-            }
-            if(keyPressed[kbA]) {
-                moveState = 3;
-            }
-            if(keyPressed[kbD]) {
-                moveState = 4;
-            }
-        } else if(moveState == 1) {
-            //moving forwards
-            static int timer = 0;
-            timer += 1;
-            eye += direction * cameraSpeed;
-            if(timer >= 80) {
-                timer = 0;
-                moveState = 0;
-            }
-        } else if(moveState == 2) {
-            //moving backwards
-            static int timer = 0;
-            timer += 1;
-            eye -= direction * cameraSpeed;
-            if(timer >= 80) {
-                timer = 0;
-                moveState = 0;
-            }
-        } else if(moveState == 3) {
-            static int timer = 0;
-            timer += 1;
-            if(timer <= 40) {
-                eye += direction * cameraSpeed;
-            } else if(timer <= 80) {
-                angle += cameraSpeed * 45;
-            } else if(timer <= 120) {
-                eye += direction * cameraSpeed;
-            } else if(timer > 120) {
-                timer = 0;
-                moveState = 0;
-            }
-        } else if(moveState == 4) {
-            static int timer = 0;
-            timer += 1;
-            if(timer <= 40) {
-                eye += direction * cameraSpeed;
-            } else if(timer <= 80) {
-                angle -= cameraSpeed * 45;
-            } else if(timer <= 120) {
-                eye += direction * cameraSpeed;
-            } else if(timer > 120) {
-                timer = 0;
-                moveState = 0;
-            }
-        }*/
+        }
 
-        if(keyState[kbW]) {
-            eye += direction * cameraSpeed;
+        if(keyPressed[kbX]) {
+            eye = glm::vec3(0.0f, 0.0f, -2.0f);
+            angle = 180.0f;
+            camX = 3;
+            camY = 5;
         }
-        if(keyState[kbS]) {
-            eye -= direction * cameraSpeed;
+
+        if(keyPressed[kbC]) {
+            if(angle == 0.0f) {
+                angle += 90.0f;
+            } else {
+                angle = 0.0f;
+            }
         }
-        if(keyState[kbA]) {
-            eye += glm::vec3(direction.z, 0.0f, -direction.x) * cameraSpeed;
+
+        //  segmented movement
+        if(moveType) {
+            if(moveState == 0) {
+                //not moving
+                if(keyPressed[kbW]) {
+                    moveState = 1;
+                }
+                if(keyPressed[kbS]) {
+                    moveState = 2;
+                }
+                if(keyPressed[kbA]) {
+                    moveState = 3;
+                }
+                if(keyPressed[kbD]) {
+                    moveState = 4;
+                }
+            } else if(moveState == 1) {
+                //moving forwards
+                static int timer = 0;
+                timer += 1;
+                eye += direction * cameraSpeed;
+                if(timer >= 80) {
+                    timer = 0;
+                    moveState = 0;
+
+                    eye -= direction * cameraSpeed * 80.0f;
+
+                    if(angle < 135.0f) {        //0 or 90
+                        if(angle < 45.0f) {     //0
+                            camY += 1;
+                        } else {
+                            camX += 1;          //90
+                        }
+                    } else {                    //180 or 270
+                        if(angle < 225.0f) {    //180
+                            camY -= 1;
+                        } else {                //270
+                            camX -= 1;
+                        }
+                    }
+                }
+            } else if(moveState == 2) {
+                //moving backwards
+                static int timer = 0;
+                timer += 1;
+                eye -= direction * cameraSpeed;
+                if(timer >= 80) {
+                    timer = 0;
+                    moveState = 0;
+
+                    eye += direction * cameraSpeed * 80.0f;
+
+                    if(angle < 135.0f) {    //0 or 90
+                        if(angle < 45.0f) { //0
+                            camY -= 1;
+                        } else {            //90
+                            camX -= 1;
+                        }
+                    } else {                //180 or 270
+                        if(angle < 225.0f) {
+                            camY += 1;      //180
+                        } else {
+                            camX += 1;      //270
+                        }
+                    }
+                }
+            } else if(moveState == 3) {
+                static int timer = 0;
+                timer += 1;
+                if(timer <= 40) {
+                    eye += direction * cameraSpeed;
+                } else if(timer <= 80) {
+                    angle += cameraSpeed * 45;
+                    if(timer == 80) {
+                        eye -= direction * cameraSpeed * 80.0f;
+
+                        if(angle < 135.0f) {        //0 or 90
+                            if(angle < 45.0f) {     //0
+                                camY += 1;
+                            } else {
+                                camX += 1;          //90
+                            }
+                        } else {                    //180 or 270
+                            if(angle < 225.0f) {    //180
+                                camY -= 1;
+                            } else {                //270
+                                camX -= 1;
+                            }
+                        }
+
+                    }
+                } else if(timer <= 120) {
+                    eye += direction * cameraSpeed;
+                } else if(timer > 120) {
+                    timer = 0;
+                    moveState = 0;
+                }
+            } else if(moveState == 4) {
+                static int timer = 0;
+                timer += 1;
+                if(timer <= 40) {
+                    eye += direction * cameraSpeed;
+                } else if(timer <= 80) {
+                    angle -= cameraSpeed * 45;
+                    if(timer == 80) {
+                        eye -= direction * cameraSpeed * 80.0f;
+
+                        if(angle < 135.0f) {        //0 or 90
+                            if(angle < 45.0f) {     //0
+                                camY += 1;
+                            } else {
+                                camX += 1;          //90
+                            }
+                        } else {                    //180 or 270
+                            if(angle < 225.0f) {    //180
+                                camY -= 1;
+                            } else {                //270
+                                camX -= 1;
+                            }
+                        }
+                    }
+                } else if(timer <= 120) {
+                    eye += direction * cameraSpeed;
+                } else if(timer > 120) {
+                    timer = 0;
+                    moveState = 0;
+                }
+            }
+
+        } else {
+            //free camera movement for testing purposes
+            if(keyState[kbW]) {
+                eye += direction * cameraSpeed;
+            }
+            if(keyState[kbS]) {
+                eye -= direction * cameraSpeed;
+            }
+            if(keyState[kbA]) {
+                eye += glm::vec3(direction.z, 0.0f, -direction.x) * cameraSpeed;
+            }
+            if(keyState[kbD]) {
+                eye -= glm::vec3(direction.z, 0.0f, -direction.x) * cameraSpeed;
+            }
+            if(keyState[kbQ]) {
+                angle += cameraSpeed * 45;
+            }
+            if(keyState[kbE]) {
+                angle -= cameraSpeed * 45;
+            }
+
         }
-        if(keyState[kbD]) {
-            eye -= glm::vec3(direction.z, 0.0f, -direction.x) * cameraSpeed;
-        }
-        if(keyState[kbQ]) {
-            angle += cameraSpeed * 45;
-        }
-        if(keyState[kbE]) {
-            angle -= cameraSpeed * 45;
-        }
+
+        
 
 
         if(angle > 360.0f) {
@@ -413,16 +631,15 @@ int main(int argc, char *args[])
         shader2d.setInt("texture1", 0);
         glBindVertexArray(VAO);
         
-        dgDrawBlock(dgSS, 0);
-        dgDrawBlock(dgSS, 1);
-        dgDrawBlock(dgOO, 2);
-        dgDrawBlock(dgOO, 3);
+        //render the block the camera is at
+        drawBlocks();
 
-        shader2d.setMat4("model", model[0]);
-        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)));
 
-        shadow.use();
-        glBindVertexArray(VAO2);
+        //shader2d.setMat4("model", model[0]);
+        //glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)));
+
+        //shadow.use();
+        //glBindVertexArray(VAO2);
         //glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);    
     
         //shader2d.setInt("depthEnabled", 0);
@@ -444,285 +661,378 @@ void inputs()
 {
     static SDL_Event e;
     
-    while(SDL_PollEvent(&e) != 0)
-    {
-        static bool curState = false;
-
-        if(e.type == SDL_QUIT) {
-            quit = true;
-        } else if(e.type == SDL_KEYDOWN) {
-            curState = true;
-        } else if(e.type == SDL_KEYUP) {
-            curState = false;
-        }
-
-
-        switch(e.key.keysym.sym)
+    if(SDL_GetWindowFlags(window) && SDL_WINDOW_INPUT_FOCUS) {
+        while(SDL_PollEvent(&e) != 0)
         {
-            case SDLK_LEFT:
-                keyState[kbLeft] = curState;
-                break;
-            case SDLK_RIGHT:
-                keyState[kbRight] = curState;
-                break;
-            case SDLK_UP:
-                keyState[kbUp] = curState;
-                break;
-            case SDLK_DOWN:
-                keyState[kbDown] = curState;
-                break;
-            case SDLK_ESCAPE:
-                keyState[kbEscape] = curState;
-                break;
-            case SDLK_F1:
-                keyState[kbF1] = curState;
-                break;
-            case SDLK_F2:
-                keyState[kbF2] = curState;
-                break;
-            case SDLK_F3:
-                keyState[kbF3] = curState;
-                break;
-            case SDLK_F4:
-                keyState[kbF4] = curState;
-                break;
-            case SDLK_F5:
-                keyState[kbF5] = curState;
-                break;
-            case SDLK_F6:
-                keyState[kbF6] = curState;
-                break;
-            case SDLK_F7:
-                keyState[kbF7] = curState;
-                break;
-            case SDLK_F8:
-                keyState[kbF8] = curState;
-                break;
-            case SDLK_F9:
-                keyState[kbF9] = curState;
-                break;
-            case SDLK_F10:
-                keyState[kbF10] = curState;
-                break;
-            case SDLK_F11:
-                keyState[kbF11] = curState;
-                break;
-            case SDLK_F12:
-                keyState[kbF12] = curState;
-                break;
-            case SDLK_BACKQUOTE:
-                keyState[kbTilde] = curState;
-                break;
-            case SDLK_1:
-                keyState[kb1] = curState;
-                break;
-            case SDLK_2:
-                keyState[kb2] = curState;
-                break;
-            case SDLK_3:
-                keyState[kb3] = curState;
-                break;
-            case SDLK_4:
-                keyState[kb4] = curState;
-                break;
-            case SDLK_5:
-                keyState[kb5] = curState;
-                break;
-            case SDLK_6:
-                keyState[kb6] = curState;
-                break;
-            case SDLK_7:
-                keyState[kb7] = curState;
-                break;
-            case SDLK_8:
-                keyState[kb8] = curState;
-                break;
-            case SDLK_9:
-                keyState[kb9] = curState;
-                break;
-            case SDLK_0:
-                keyState[kb0] = curState;
-                break;
-            case SDLK_MINUS:
-                keyState[kbMinus] = curState;
-                break;
-            case SDLK_EQUALS:
-                keyState[kbEquals] = curState;
-                break;
-            case SDLK_BACKSPACE:
-                keyState[kbBackspace] = curState;
-                break;
-            case SDLK_TAB:
-                keyState[kbTab] = curState;
-                break;
-            case SDLK_q:
-                keyState[kbQ] = curState;
-                break;
-            case SDLK_w:
-                keyState[kbW] = curState;
-                break;
-            case SDLK_e:
-                keyState[kbE] = curState;
-                break;
-            case SDLK_r:
-                keyState[kbR] = curState;
-                break;
-            case SDLK_t:
-                keyState[kbT] = curState;
-                break;
-            case SDLK_y:
-                keyState[kbY] = curState;
-                break;
-            case SDLK_u:
-                keyState[kbU] = curState;
-                break;
-            case SDLK_i:
-                keyState[kbI] = curState;
-                break;
-            case SDLK_o:
-                keyState[kbO] = curState;
-                break;
-            case SDLK_p:
-                keyState[kbP] = curState;
-                break;
-            case SDLK_LEFTBRACKET:
-                keyState[kbLBracket] = curState;
-                break;
-            case SDLK_RIGHTPAREN:
-                keyState[kbRBracket] = curState;
-                break;
-            case SDLK_BACKSLASH:
-                keyState[kbBackslash] = curState;
-                break;
-            case SDLK_a:
-                keyState[kbA] = curState;
-                break;
-            case SDLK_s:
-                keyState[kbS] = curState;
-                break;
-            case SDLK_d:
-                keyState[kbD] = curState;
-                break;
-            case SDLK_f:
-                keyState[kbF] = curState;
-                break;
-            case SDLK_g:
-                keyState[kbG] = curState;
-                break;
-            case SDLK_h:
-                keyState[kbH] = curState;
-                break;
-            case SDLK_j:
-                keyState[kbJ] = curState;
-                break;
-            case SDLK_k:
-                keyState[kbK] = curState;
-                break;
-            case SDLK_l:
-                keyState[kbL] = curState;
-                break;
-            case SDLK_SEMICOLON:
-                keyState[kbColon] = curState;
-                break;
-            case SDLK_QUOTE:
-                keyState[kbQuote] = curState;
-                break;
-            case SDLK_RETURN:
-                keyState[kbEnter] = curState;
-                break;
-            case SDLK_LSHIFT:
-                keyState[kbLShift] = curState;
-                break;
-            case SDLK_z:
-                keyState[kbZ] = curState;
-                break;
-            case SDLK_x:
-                keyState[kbX] = curState;
-                break;
-            case SDLK_c:
-                keyState[kbC] = curState;
-                break;
-            case SDLK_v:
-                keyState[kbV] = curState;
-                break;
-            case SDLK_b:
-                keyState[kbB] = curState;
-                break;
-            case SDLK_n:
-                keyState[kbN] = curState;
-                break;
-            case SDLK_m:
-                keyState[kbM] = curState;
-                break;
-            case SDLK_COMMA:
-                keyState[kbComma] = curState;
-                break;
-            case SDLK_PERIOD:
-                keyState[kbPeriod] = curState;
-                break;
-            case SDLK_SLASH:
-                keyState[kbSlash] = curState;
-                break;
-            case SDLK_RSHIFT:
-                keyState[kbRShift] = curState;
-                break;
-            case SDLK_LCTRL:
-                keyState[kbLCtrl] = curState;
-                break;
-            case SDLK_LGUI:
-                keyState[kbLWin] = curState;
-                break;
-            case SDLK_LALT:
-                keyState[kbLAlt] = curState;
-                break;
-            case SDLK_SPACE:
-                keyState[kbSpace] = curState;
-                break;
-            case SDLK_RALT:
-                keyState[kbRAlt] = curState;
-                break;
-            case SDLK_RGUI:
-                keyState[kbRWin] = curState;
-                break;
-            case SDLK_MENU:
-                keyState[kbMenu] = curState;
-                break;
-            case SDLK_RCTRL:
-                keyState[kbRCtrl] = curState;
-                break;
-            case SDLK_INSERT:
-                keyState[kbInsert] = curState;
-                break;
-            case SDLK_HOME:
-                keyState[kbHome] = curState;
-                break;
-            case SDLK_PAGEUP:
-                keyState[kbPgup] = curState;
-                break;
-            case SDLK_DELETE:
-                keyState[kbDelete] = curState;
-                break;
-            case SDLK_END:
-                keyState[kbEnd] = curState;
-                break;
-            case SDLK_PAGEDOWN:
-                keyState[kbPgdn] = curState;
-                break;
-            default:
-                break;
+            static bool curState = false;
+
+            if(e.type == SDL_QUIT) {
+                quit = true;
+            } else if(e.type == SDL_KEYDOWN) {
+                curState = true;
+            } else if(e.type == SDL_KEYUP) {
+                curState = false;
+            }
+
+
+            switch(e.key.keysym.sym)
+            {
+                case SDLK_LEFT:
+                    keyState[kbLeft] = curState;
+                    break;
+                case SDLK_RIGHT:
+                    keyState[kbRight] = curState;
+                    break;
+                case SDLK_UP:
+                    keyState[kbUp] = curState;
+                    break;
+                case SDLK_DOWN:
+                    keyState[kbDown] = curState;
+                    break;
+                case SDLK_ESCAPE:
+                    keyState[kbEscape] = curState;
+                    break;
+                case SDLK_F1:
+                    keyState[kbF1] = curState;
+                    break;
+                case SDLK_F2:
+                    keyState[kbF2] = curState;
+                    break;
+                case SDLK_F3:
+                    keyState[kbF3] = curState;
+                    break;
+                case SDLK_F4:
+                    keyState[kbF4] = curState;
+                    break;
+                case SDLK_F5:
+                    keyState[kbF5] = curState;
+                    break;
+                case SDLK_F6:
+                    keyState[kbF6] = curState;
+                    break;
+                case SDLK_F7:
+                    keyState[kbF7] = curState;
+                    break;
+                case SDLK_F8:
+                    keyState[kbF8] = curState;
+                    break;
+                case SDLK_F9:
+                    keyState[kbF9] = curState;
+                    break;
+                case SDLK_F10:
+                    keyState[kbF10] = curState;
+                    break;
+                case SDLK_F11:
+                    keyState[kbF11] = curState;
+                    break;
+                case SDLK_F12:
+                    keyState[kbF12] = curState;
+                    break;
+                case SDLK_BACKQUOTE:
+                    keyState[kbTilde] = curState;
+                    break;
+                case SDLK_1:
+                    keyState[kb1] = curState;
+                    break;
+                case SDLK_2:
+                    keyState[kb2] = curState;
+                    break;
+                case SDLK_3:
+                    keyState[kb3] = curState;
+                    break;
+                case SDLK_4:
+                    keyState[kb4] = curState;
+                    break;
+                case SDLK_5:
+                    keyState[kb5] = curState;
+                    break;
+                case SDLK_6:
+                    keyState[kb6] = curState;
+                    break;
+                case SDLK_7:
+                    keyState[kb7] = curState;
+                    break;
+                case SDLK_8:
+                    keyState[kb8] = curState;
+                    break;
+                case SDLK_9:
+                    keyState[kb9] = curState;
+                    break;
+                case SDLK_0:
+                    keyState[kb0] = curState;
+                    break;
+                case SDLK_MINUS:
+                    keyState[kbMinus] = curState;
+                    break;
+                case SDLK_EQUALS:
+                    keyState[kbEquals] = curState;
+                    break;
+                case SDLK_BACKSPACE:
+                    keyState[kbBackspace] = curState;
+                    break;
+                case SDLK_TAB:
+                    keyState[kbTab] = curState;
+                    break;
+                case SDLK_q:
+                    keyState[kbQ] = curState;
+                    break;
+                case SDLK_w:
+                    keyState[kbW] = curState;
+                    break;
+                case SDLK_e:
+                    keyState[kbE] = curState;
+                    break;
+                case SDLK_r:
+                    keyState[kbR] = curState;
+                    break;
+                case SDLK_t:
+                    keyState[kbT] = curState;
+                    break;
+                case SDLK_y:
+                    keyState[kbY] = curState;
+                    break;
+                case SDLK_u:
+                    keyState[kbU] = curState;
+                    break;
+                case SDLK_i:
+                    keyState[kbI] = curState;
+                    break;
+                case SDLK_o:
+                    keyState[kbO] = curState;
+                    break;
+                case SDLK_p:
+                    keyState[kbP] = curState;
+                    break;
+                case SDLK_LEFTBRACKET:
+                    keyState[kbLBracket] = curState;
+                    break;
+                case SDLK_RIGHTPAREN:
+                    keyState[kbRBracket] = curState;
+                    break;
+                case SDLK_BACKSLASH:
+                    keyState[kbBackslash] = curState;
+                    break;
+                case SDLK_a:
+                    keyState[kbA] = curState;
+                    break;
+                case SDLK_s:
+                    keyState[kbS] = curState;
+                    break;
+                case SDLK_d:
+                    keyState[kbD] = curState;
+                    break;
+                case SDLK_f:
+                    keyState[kbF] = curState;
+                    break;
+                case SDLK_g:
+                    keyState[kbG] = curState;
+                    break;
+                case SDLK_h:
+                    keyState[kbH] = curState;
+                    break;
+                case SDLK_j:
+                    keyState[kbJ] = curState;
+                    break;
+                case SDLK_k:
+                    keyState[kbK] = curState;
+                    break;
+                case SDLK_l:
+                    keyState[kbL] = curState;
+                    break;
+                case SDLK_SEMICOLON:
+                    keyState[kbColon] = curState;
+                    break;
+                case SDLK_QUOTE:
+                    keyState[kbQuote] = curState;
+                    break;
+                case SDLK_RETURN:
+                    keyState[kbEnter] = curState;
+                    break;
+                case SDLK_LSHIFT:
+                    keyState[kbLShift] = curState;
+                    break;
+                case SDLK_z:
+                    keyState[kbZ] = curState;
+                    break;
+                case SDLK_x:
+                    keyState[kbX] = curState;
+                    break;
+                case SDLK_c:
+                    keyState[kbC] = curState;
+                    break;
+                case SDLK_v:
+                    keyState[kbV] = curState;
+                    break;
+                case SDLK_b:
+                    keyState[kbB] = curState;
+                    break;
+                case SDLK_n:
+                    keyState[kbN] = curState;
+                    break;
+                case SDLK_m:
+                    keyState[kbM] = curState;
+                    break;
+                case SDLK_COMMA:
+                    keyState[kbComma] = curState;
+                    break;
+                case SDLK_PERIOD:
+                    keyState[kbPeriod] = curState;
+                    break;
+                case SDLK_SLASH:
+                    keyState[kbSlash] = curState;
+                    break;
+                case SDLK_RSHIFT:
+                    keyState[kbRShift] = curState;
+                    break;
+                case SDLK_LCTRL:
+                    keyState[kbLCtrl] = curState;
+                    break;
+                case SDLK_LGUI:
+                    keyState[kbLWin] = curState;
+                    break;
+                case SDLK_LALT:
+                    keyState[kbLAlt] = curState;
+                    break;
+                case SDLK_SPACE:
+                    keyState[kbSpace] = curState;
+                    break;
+                case SDLK_RALT:
+                    keyState[kbRAlt] = curState;
+                    break;
+                case SDLK_RGUI:
+                    keyState[kbRWin] = curState;
+                    break;
+                case SDLK_MENU:
+                    keyState[kbMenu] = curState;
+                    break;
+                case SDLK_RCTRL:
+                    keyState[kbRCtrl] = curState;
+                    break;
+                case SDLK_INSERT:
+                    keyState[kbInsert] = curState;
+                    break;
+                case SDLK_HOME:
+                    keyState[kbHome] = curState;
+                    break;
+                case SDLK_PAGEUP:
+                    keyState[kbPgup] = curState;
+                    break;
+                case SDLK_DELETE:
+                    keyState[kbDelete] = curState;
+                    break;
+                case SDLK_END:
+                    keyState[kbEnd] = curState;
+                    break;
+                case SDLK_PAGEDOWN:
+                    keyState[kbPgdn] = curState;
+                    break;
+                default:
+                    break;
+            }
         }
-    }
-    
-    for(int i=0;i<82;i++) {
-        if(keyState[i] && !(keyStateTest[i])) {
-            keyPressed[i] = true;
-        } else {
+        
+        for(int i=0;i<82;i++) {
+            if(keyState[i] && !(keyStateTest[i])) {
+                keyPressed[i] = true;
+            } else {
+                keyPressed[i] = false;
+            }
+            keyStateTest[i] = keyState[i];
+        }
+    } else {
+        for(int i=0;i<82;i++) {
+            keyState[i] = false;
             keyPressed[i] = false;
+            keyStateTest[i] = false;;
+       }
+    }
+
+}
+
+void drawBlock(unsigned char data) {
+    if(data != 0xFF) {
+        if(data & 0x01) {
+            //top
+            glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)), 1);
+        } else {
+            glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 2);
+            glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 8);
         }
-        keyStateTest[i] = keyState[i];
+        if(data & 0x02) {
+            //left
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(24*sizeof(uint32_t)));
+        } else {
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)));
+            glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 1);
+        }
+        if(data & 0x04) {
+            //bottom
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)));
+        } else {
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, 6);
+        }
+        if(data & 0x08) {
+            //right
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(30*sizeof(uint32_t)));
+        } else {
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(12*sizeof(uint32_t)));
+            glDrawElementsBaseVertex(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(12*sizeof(uint32_t)), 1);
+        }
     }
 }
 
+void blockInfo() {
+    //assuming the data is correct for now, maybe this will be loaded from
+    //  an external file later
+    blockW = static_cast<int>(blocks[4]);
+    blockH = static_cast<int>(blocks[5]);
+    camX = static_cast<int>(blocks[6]);
+    camY = static_cast<int>(blocks[7]);
+}
+
+void drawBlocks() {
+    //lets assume the camera is in the right position
+    unsigned char current;
+
+    if(camY + 1 < blockH) {
+        shader2d.setMat4("model", model[0]);
+        current = blocks[8 + (camY+1)*6 + camX];
+        drawBlock(current);
+    }
+    if(camY >= 0) {
+        shader2d.setMat4("model", model[2]);
+        current = blocks[8 + camY*6 + camX];
+        drawBlock(current);
+    }
+    if(camX - 1 >= 0) {
+        shader2d.setMat4("model", model[1]);
+        current = blocks[8 + camY*6 + camX - 1];
+        drawBlock(current);
+        if(camX - 2 >= 0) {
+            shader2d.setMat4("model", model[4]);
+            current = blocks[8 + camY*6 + camX - 2];
+            drawBlock(current);
+        }
+    }
+    if(camX + 1 < blockW) {
+        shader2d.setMat4("model", model[3]);
+        current = blocks[8 + camY*6 + camX + 1];
+        drawBlock(current);
+        if(camX + 2 < blockW) {
+            shader2d.setMat4("model", model[6]);
+            current = blocks[8 + camY*6 + camX + 2];
+            drawBlock(current);
+        }
+    }
+    if(camY - 1 >= 0) {
+        shader2d.setMat4("model", model[5]);
+        current = blocks[8 + (camY-1)*6 + camX];
+        drawBlock(current);
+    }
+}
+
+/*
 void dgDrawBlock(dgDrawBlockType block, int loc) {
     if(curShader != &shader2d) {
         shader2d.use();
@@ -748,7 +1058,7 @@ void dgDrawBlock(dgDrawBlockType block, int loc) {
         glDrawElementsBaseVertex(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(6*sizeof(uint32_t)), 18);
     }
 
-}
+}*/
 
 
 class GL_tex {
