@@ -13,7 +13,7 @@ if(UNIX AND NOT APPLE)
     add_executable(opengl_test main.cpp glad.c shader.cpp stb_image.cpp)
     
     target_include_directories(opengl_test PUBLIC ./include)
-    target_link_libraries(opengl_test -lSDL2main -lSDL2)
+    target_link_libraries(opengl_test -lSDL2main -lSDL2 -lfreetype)
     target_link_libraries(opengl_test -lglfw3 -lGL -lX11 -lpthread -lXrandr -lXi -ldl)
     
 endif()
@@ -30,10 +30,10 @@ if(WIN32)
     target_include_directories(opengl_test PUBLIC ./include)
     target_link_libraries(opengl_test -L../../libraries/lib)
     target_link_libraries(opengl_test -w -Wl,-subsystem,windows)
-    target_link_libraries(opengl_test -lmingw32 -lSDL2main -lSDL2)
+    target_link_libraries(opengl_test -lmingw32 -lSDL2main -lSDL2 -lfreetype)
 
     configure_file(${OS_RES_DIR}/SDL2.dll ${OUT_DIR} COPYONLY)
-    
+    configure_file(${OS_RES_DIR}/freetype.dll ${OUT_DIR} COPYONLY)
 endif()
 
 #all platforms
@@ -42,9 +42,11 @@ configure_file(${RES_DIR}/shader2d.frag ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/shader2d.vert ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/shadow.frag ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/shadow.vert ${OUT_DIR} COPYONLY)
+configure_file(${RES_DIR}/text.vert ${OUT_DIR} COPYONLY)
+configure_file(${RES_DIR}/text.frag ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/wall.jpg ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/fog.png ${OUT_DIR} COPYONLY)
-
+configure_file(${RES_DIR}/SourceSansPro-Regular.ttf ${OUT_DIR} COPYONLY)
 
 #add_library(opengl_test library.c)
 #file(MAKE_DIRECTORY ${OUT_DIR}/directory)
