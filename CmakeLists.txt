@@ -44,7 +44,8 @@ configure_file(${RES_DIR}/shadow.frag ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/shadow.vert ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/wall.jpg ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/fog.png ${OUT_DIR} COPYONLY)
-
+configure_file(${RES_DIR}/enemy.png ${OUT_DIR} COPYONLY)
+configure_file(${RES_DIR}/font.png ${OUT_DIR} COPYONLY)
 
 #add_library(opengl_test library.c)
 #file(MAKE_DIRECTORY ${OUT_DIR}/directory)
