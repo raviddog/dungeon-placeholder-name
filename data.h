@@ -148,15 +148,6 @@ float vertices[] = {
     8.0f, 1.0f, -8.0f,      16.0f, 0.0f
 
 };
-
-float fade[] = {
-    -0.5f, -0.8f, 0.0f,
-    0.5f, -0.8f, 0.0f,
-    0.5f, 0.8f, 0.0f,
-    -0.5f, 0.8f, 0.0f,
-    0.0f, 0.0f, 1.5f
-};
-
 uint32_t indices[] = {
     //bottom open = 0 - 5, 0 + 6
     //top open = 0 - 5, 2 + 8
@@ -192,6 +183,14 @@ uint32_t indices[] = {
     36, 37, 38,
     36, 39, 38
 };
+/*
+float fade[] = {
+    -0.5f, -0.8f, 0.0f,
+    0.5f, -0.8f, 0.0f,
+    0.5f, 0.8f, 0.0f,
+    -0.5f, 0.8f, 0.0f,
+    0.0f, 0.0f, 1.5f
+};
 
 uint32_t fade_i[] {
     0, 1, 4,
@@ -199,7 +198,7 @@ uint32_t fade_i[] {
     2, 3, 4,
     3, 0, 4
 };
-
+*/
 glm::mat4 model[7];
 
 void data::loadData() {

@@ -26,18 +26,14 @@
 
 */
 
-
+//window and input
 SDL_Window *window;
 SDL_GLContext maincontext;
-Shader shader2d, shader3d, shadow, textShad;
-void *curShader;
-
 bool quit = false;
-
 bool keyState[82];
 bool keyPressed[82];
 bool keyStateTest[82];
-
+void inputs();
 enum keyCodes{
     kbLeft, kbRight, kbUp, kbDown,
     kbEscape, kbF1, kbF2, kbF3, kbF4, kbF5, kbF6, kbF7, kbF8, kbF9, kbF10, kbF11, kbF12,
@@ -49,6 +45,11 @@ enum keyCodes{
     kbInsert, kbHome, kbPgup, kbDelete, kbEnd, kbPgdn
 };
 
+void *curShader;    //store current active shader
+
+
+//text stuff
+Shader textShad;
 FT_Library fontLib;
 FT_Face fontFace;
 struct Character {
@@ -57,16 +58,22 @@ struct Character {
     glm::ivec2 Bearing;    // Offset from baseline to left/top of glyph
     GLuint     Advance;    // Offset to advance to next glyph
 };
-
 std::map<GLchar, Character> Characters;
+void renderText(std::string, float, float, float);
+uint32_t VAO_font, VBO_font;
 
-void inputs();
+
+//map stuff
+Shader shader2d;
+float shader2d_angle, cameraSpeed;
 void drawBlocks();
 void blockInfo();
-void renderText(std::string, float, float, float);
-
 int camX, camZ, blockW, blockH;
-uint32_t VAO_font, VBO_font;
+uint32_t VAO, VBO, EBO;
+
+//Shader shadow;
+//uint32_t VAO2, VBO2, EBO2;
+
 
 int main(int argc, char *args[])
 {
@@ -90,123 +97,40 @@ int main(int argc, char *args[])
     );
 
 
+    //opengl options and stuff
     maincontext =  SDL_GL_CreateContext(window);
     gladLoadGLLoader(SDL_GL_GetProcAddress);
       
     SDL_GL_SetSwapInterval(1);
-
     glViewport(0, 0, 640, 480);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
     stbi_set_flip_vertically_on_load(true);
-
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
     glEnable(GL_DEPTH_TEST);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+
+    
+    //shadow.load("./shadow.vert", "./shadow.frag");
+    //shader3d.load("./shader3d.vert", "./shader3d.frag");
+
+
+    //set up text rendering
+    glGenVertexArrays(1, &VAO_font);
+    glBindVertexArray(VAO_font);
+    glGenBuffers(1, &VBO_font);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_font);
+    //modify this potentially maybe later for text vertex caching
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     FT_Init_FreeType(&fontLib);
     FT_New_Face(fontLib, "./SourceSansPro-Regular.ttf", 0, &fontFace);
     FT_Set_Pixel_Sizes(fontFace, 0, 48);
 
-    shader2d.load("./shader2d.vert", "./shader2d.frag");
-    shadow.load("./shadow.vert", "./shadow.frag");
-    //shader3d.load("./shader3d.vert", "./shader3d.frag");
-    textShad.load("./text.vert", "./text.frag");
-    shader2d.use();
-    curShader = &shader2d;
-
-    uint32_t VAO, VBO, EBO, VBO2, VAO2, EBO2;
-    
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
-
-    
-
-    glGenVertexArrays(1, &VAO2);
-    glBindVertexArray(VAO2);
-
-    glGenBuffers(1, &VBO2);
-    glGenBuffers(1, &EBO2);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(fade), fade, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO2);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(fade_i), fade_i, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)(2*sizeof(float)));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
-
-    
-
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    
-
-
-    int imgWidth, imgHeight, imgChannels;
-    unsigned char *data = stbi_load("wall.jpg", &imgWidth, &imgHeight, &imgChannels, 0);
-    glActiveTexture(GL_TEXTURE0);
-    uint32_t texture[2];
-    glGenTextures(2, texture);
-    glBindTexture(GL_TEXTURE_2D, texture[0]);
-
-    if(data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-
-    
-    stbi_image_free(data);
-/*
-    data = stbi_load("fog.png", &imgWidth, &imgHeight, &imgChannels, 0);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texture[1]);
-
-    if(data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imgWidth, imgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-
-    stbi_image_free(data);
-*/
-    //set up memory for font rendering
-    
-    glGenVertexArrays(1, &VAO_font);
-    glBindVertexArray(VAO_font);
-    glGenBuffers(1, &VBO_font);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_font);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //glBindVertexArray(0); 
-
-    glActiveTexture(GL_TEXTURE1);
-
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // Disable byte-alignment restriction
   
     for (GLubyte c = 0; c < 128; c++)
@@ -247,57 +171,125 @@ int main(int argc, char *args[])
         Characters.insert(std::pair<GLchar, Character>(c, character));
     }
 
-    glBindVertexArray(0);
-
     FT_Done_Face(fontFace);
     FT_Done_FreeType(fontLib);
-    
-    glm::mat4 view;
-    // note that we're translating the scene in the reverse direction of where we want to move
-    //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -2.0f)); 
 
-    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 eye = glm::vec3(0.0f, 0.0f, 2.0f);
-
-    float angle = 0.0f;
-    float dirX = sin(glm::radians(angle));
-    float dirZ = cos(glm::radians(angle));
-
-    glm::vec3 direction = glm::vec3(dirX, 0.0f, dirZ);
-    direction = glm::normalize(direction);
-
-    view = glm::lookAt(eye, eye + direction, up);
-
-    float cameraSpeed = 0.05f;
-
-
-    glm::mat4 projection;
-    projection = glm::perspective(glm::radians(90.0f), (float)640 / (float)480, 0.1f, 100.0f);
-
-    //shader2d.setMat4("model", model);
-    shader2d.use();
-    shader2d.setMat4("view", view);
-    shader2d.setMat4("projection", projection);
-    shader2d.setFloat("depth", 1.0f);
-    shader2d.setInt("texture1", 0);
-
+    //text shader setup
+    textShad.load("./text.vert", "./text.frag");
     textShad.use();
+    curShader = &textShad;
 
-    glm::mat4 textProjection;
-    textProjection = glm::ortho(0.0f, 640.0f, 0.0f, 480.0f);
-    textShad.setMat4("projection", textProjection);
+    glm::mat4 textShad_projection;
+    textShad_projection = glm::ortho(0.0f, 640.0f, 0.0f, 480.0f);
+    textShad.setMat4("projection", textShad_projection);
     textShad.setVec3("textColor", glm::vec3(1.0f, 1.0f, 1.0f));
     textShad.setInt("text", 1);
 
 
-    
+
+    //set up shader2d
+    shader2d.load("./shader2d.vert", "./shader2d.frag");
+    shader2d.use();
+    curShader = &shader2d;
+    cameraSpeed = 0.05f;
+
+    glm::mat4 shader2d_projection;
+    shader2d_projection = glm::perspective(glm::radians(90.0f), (float)640 / (float)480, 0.1f, 100.0f);
+
+    shader2d_angle = 0.0f;
+    glm::vec3 shader2d_up = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 shader2d_eye = glm::vec3(0.0f, 0.0f, 2.0f);
+    float shader2d_dirX = sin(glm::radians(shader2d_angle));
+    float shader2d_dirZ = cos(glm::radians(shader2d_angle));
+    glm::vec3 shader2d_direction = glm::vec3(shader2d_dirX, 0.0f, shader2d_dirZ);
+    shader2d_direction = glm::normalize(shader2d_direction);
+    glm::mat4 shader2d_view = glm::lookAt(shader2d_eye, shader2d_eye + shader2d_direction, shader2d_up);
+
+    shader2d.setMat4("view", shader2d_view);
+    shader2d.setMat4("projection", shader2d_projection);
+    shader2d.setFloat("depth", 1.0f);
+    shader2d.setInt("texture1", 0);
+
 
     
+    //set up all that texture rendering stuff that i cant think of a name for
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
 
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
-    bool inputEnabled;
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    int imgWidth, imgHeight, imgChannels;
+    unsigned char *data = stbi_load("wall.jpg", &imgWidth, &imgHeight, &imgChannels, 0);
+    glActiveTexture(GL_TEXTURE0);
+    uint32_t texture[1];
+    glGenTextures(1, texture);
+    glBindTexture(GL_TEXTURE_2D, texture[0]);
+    if(data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    stbi_image_free(data);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    //glBindTexture(GL_TEXTURE_2D, 0);
+
+    /*
+    set up rendering for fake shadows or something idk
+
+    glGenVertexArrays(1, &VAO2);
+    glBindVertexArray(VAO2);
+
+    glGenBuffers(1, &VBO2);
+    glGenBuffers(1, &EBO2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(fade), fade, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO2);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(fade_i), fade_i, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)(2*sizeof(float)));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+
+    */
+    
+/*
+    data = stbi_load("fog.png", &imgWidth, &imgHeight, &imgChannels, 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture[1]);
+
+    if(data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imgWidth, imgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+
+    stbi_image_free(data);
+*/
+
     int moveState = 0;
-
     blockInfo();
     bool moveType = true;
     unsigned char facing = 0x01;
@@ -316,17 +308,17 @@ int main(int argc, char *args[])
         }
 
         if(keyPressed[kbX]) {
-            eye = glm::vec3(0.0f, 0.0f, 2.0f);
-            angle = 0.0f;
+            shader2d_eye = glm::vec3(0.0f, 0.0f, 2.0f);
+            shader2d_angle = 0.0f;
             camX = 3;
             camZ = 5;
         }
 
         if(keyPressed[kbC]) {
-            if(angle == 0.0f) {
-                angle += 90.0f;
+            if(shader2d_angle == 0.0f) {
+                shader2d_angle += 90.0f;
             } else {
-                angle = 0.0f;
+                shader2d_angle = 0.0f;
             }
         }
 
@@ -365,12 +357,12 @@ int main(int argc, char *args[])
                 //moving forwards
                 static int timer = 0;
                 timer += 1;
-                eye += direction * cameraSpeed;
+                shader2d_eye += shader2d_direction * cameraSpeed;
                 if(timer >= 80) {
                     timer = 0;
                     moveState = 0;
 
-                    eye -= direction * cameraSpeed * 80.0f;
+                    shader2d_eye -= shader2d_direction * cameraSpeed * 80.0f;
 
                     switch(facing) {
                         case 0x01:
@@ -391,12 +383,12 @@ int main(int argc, char *args[])
                 //moving backwards
                 static int timer = 0;
                 timer += 1;
-                eye -= direction * cameraSpeed;
+                shader2d_eye -= shader2d_direction * cameraSpeed;
                 if(timer >= 80) {
                     timer = 0;
                     moveState = 0;
 
-                    eye += direction * cameraSpeed * 80.0f;
+                    shader2d_eye += shader2d_direction * cameraSpeed * 80.0f;
 
                     switch(facing) {
                         case 0x01:
@@ -417,12 +409,12 @@ int main(int argc, char *args[])
                 static int timer = 0;
                 timer += 1;
                 if(timer <= 40) {
-                    eye += direction * cameraSpeed;
+                    shader2d_eye += shader2d_direction * cameraSpeed;
                 } else if(timer <= 80) {
-                    angle += cameraSpeed * 45;
+                    shader2d_angle += cameraSpeed * 45;
                 } else if(timer <= 120) {
                     if(timer == 81) {
-                        eye -= direction * cameraSpeed * 80.0f;
+                        shader2d_eye -= shader2d_direction * cameraSpeed * 80.0f;
                         switch(facing) {
                             case 0x01:
                                 camZ -= 1;
@@ -438,7 +430,7 @@ int main(int argc, char *args[])
                                 break;
                         }
                     }
-                    eye += direction * cameraSpeed;
+                    shader2d_eye += shader2d_direction * cameraSpeed;
                 } else if(timer > 120) {
                     timer = 0;
                     moveState = 0;
@@ -447,12 +439,12 @@ int main(int argc, char *args[])
                 static int timer = 0;
                 timer += 1;
                 if(timer <= 40) {
-                    eye += direction * cameraSpeed;
+                    shader2d_eye += shader2d_direction * cameraSpeed;
                 } else if(timer <= 80) {
-                    angle -= cameraSpeed * 45;
+                    shader2d_angle -= cameraSpeed * 45;
                 } else if(timer <= 120) {
                     if(timer == 81) {
-                        eye -= direction * cameraSpeed * 80.0f;
+                        shader2d_eye -= shader2d_direction * cameraSpeed * 80.0f;
 
                         switch(facing) {
                             case 0x01:
@@ -469,7 +461,7 @@ int main(int argc, char *args[])
                                 break;
                         }
                     }
-                    eye += direction * cameraSpeed;
+                    shader2d_eye += shader2d_direction * cameraSpeed;
                 } else if(timer > 120) {
                     timer = 0;
                     moveState = 0;
@@ -479,22 +471,22 @@ int main(int argc, char *args[])
         } else {
             //free camera movement for testing purposes
             if(keyState[kbW]) {
-                eye += direction * cameraSpeed;
+                shader2d_eye += shader2d_direction * cameraSpeed;
             }
             if(keyState[kbS]) {
-                eye -= direction * cameraSpeed;
+                shader2d_eye -= shader2d_direction * cameraSpeed;
             }
             if(keyState[kbA]) {
-                eye += glm::vec3(direction.z, 0.0f, -direction.x) * cameraSpeed;
+                shader2d_eye += glm::vec3(shader2d_direction.z, 0.0f, -shader2d_direction.x) * cameraSpeed;
             }
             if(keyState[kbD]) {
-                eye -= glm::vec3(direction.z, 0.0f, -direction.x) * cameraSpeed;
+                shader2d_eye -= glm::vec3(shader2d_direction.z, 0.0f, -shader2d_direction.x) * cameraSpeed;
             }
             if(keyState[kbQ]) {
-                angle += cameraSpeed * 45;
+                shader2d_angle += cameraSpeed * 45;
             }
             if(keyState[kbE]) {
-                angle -= cameraSpeed * 45;
+                shader2d_angle -= cameraSpeed * 45;
             }
 
         }
@@ -502,64 +494,49 @@ int main(int argc, char *args[])
         
 
 
-        if(angle > 360.0f) {
-            angle -= 360.0f;
-        } else if(angle < 0.0f) {
-            angle += 360.0f;
+        if(shader2d_angle > 360.0f) {
+            shader2d_angle -= 360.0f;
+        } else if(shader2d_angle < 0.0f) {
+            shader2d_angle += 360.0f;
         }
 
-        if(angle < 135.0f) {
-            if(angle < 45.0f) {
+        if(shader2d_angle < 135.0f) {
+            if(shader2d_angle < 45.0f) {
                 facing = 0x01;
             } else {
                 facing = 0x02;
             }
-        } else if(angle < 315.0f) {
-            if(angle < 225.0f) {
+        } else if(shader2d_angle < 315.0f) {
+            if(shader2d_angle < 225.0f) {
                 facing = 0x04;
             } else {
                 facing  = 0x08;
             }
-        } else if(angle <= 360) {
+        } else if(shader2d_angle <= 360) {
             //315 - 360
             facing = 0x01;
         } else {
-            angle = 0;
-            facing = 0x01; //i have no idea, fix it
+            shader2d_angle = 0;
+            facing = 0x01; //unexpected, fix it
         }
 
-        dirX = sin(glm::radians(angle));
-        dirZ = cos(glm::radians(angle));
-        direction = glm::normalize(glm::vec3(dirX, 0.0f, dirZ));
-        view = glm::lookAt(eye, eye + direction, up);
-
-
-
-        
-        //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
-        //view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        shader2d_dirX = sin(glm::radians(shader2d_angle));
+        shader2d_dirZ = cos(glm::radians(shader2d_angle));
+        shader2d_direction = glm::normalize(glm::vec3(shader2d_dirX, 0.0f, shader2d_dirZ));
+        shader2d_view = glm::lookAt(shader2d_eye, shader2d_eye + shader2d_direction, shader2d_up);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
-        shader2d.use();
-        shader2d.setMat4("view", view);
-        
-        glBindVertexArray(VAO);
+        if(curShader != &shader2d) {
+            shader2d.use();
+            curShader = &shader2d;
+        }
+        shader2d.setMat4("view", shader2d_view);
         
         //render the block the camera is at
         drawBlocks();
-
-        glBindVertexArray(0);
-
-
-        glBindVertexArray(VAO_font);
-        //glBindBuffer(GL_ARRAY_BUFFER, VBO_font);
-        textShad.use();
-        glEnable(GL_CULL_FACE);
         renderText("test text blablabla", 100.0f, 100.0f, 1.0f);
-        glDisable(GL_CULL_FACE);
-        glBindVertexArray(0);
-
+        
         //shader2d.setMat4("model", model[0]);
         //glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)));
 
@@ -917,10 +894,12 @@ void blockInfo() {
 }
 
 void drawBlocks() {
-    //if(curShader != &shader2d) {
-    //    shader2d.use();
-    //    curShader = &shader2d;
-    //}
+    if(curShader != &shader2d) {
+        shader2d.use();
+        curShader = &shader2d;
+    }
+
+    glBindVertexArray(VAO);
 
     unsigned char current;
 
@@ -959,24 +938,27 @@ void drawBlocks() {
         current = blocks[8 + (camZ-1)*6 + camX];
         drawBlock(current);
     }
+
+    glBindVertexArray(0);
 }
 
 void renderText(std::string text, GLfloat x, GLfloat y, GLfloat scale)
 {
+    //TODO: cache the vertexes for each text object
     // Activate corresponding render state	
     
-    //if(curShader != &textShad) {
-    //    textShad.use();
-    //    curShader = &textShad;
-    //}
+    if(curShader != &textShad) {
+        textShad.use();
+        curShader = &textShad;
+    }
 
     //textShad.setVec3("textColor", glm::vec3(color.x, color.y, color.z));
     //probs set this color outside of the function
 
     //glUniform3f(glGetUniformLocation(textShad.Program, "textColor"), color.x, color.y, color.z);
     glActiveTexture(GL_TEXTURE1);
-    //set vao before calling
-    //glBindVertexArray(VAO_font);
+    glBindVertexArray(VAO_font);
+    //glEnable(GL_CULL_FACE);
 
     // Iterate through all characters
     std::string::const_iterator c;
@@ -1011,7 +993,8 @@ void renderText(std::string text, GLfloat x, GLfloat y, GLfloat scale)
         x += (ch.Advance >> 6) * scale; // Bitshift by 6 to get value in pixels (2^6 = 64)
     }
     glBindVertexArray(0);
-    //glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    //glDisable(GL_CULL_FACE);
 }
 
 
