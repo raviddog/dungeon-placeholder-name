@@ -76,8 +76,8 @@ uint32_t VAO_font, VBO_font;
 
 
 //map stuff
-Shader shader2d;
-float shader2d_angle, cameraSpeed;
+Shader shader3d;
+float shader3d_angle, cameraSpeed;
 void drawBlocks();
 void blockInfo();
 int camX, camZ, blockW, blockH;
@@ -249,28 +249,28 @@ int main(int argc, char *args[])
 
 
 
-    //set up shader2d
-    shader2d.load("./shader2d.vert", "./shader2d.frag");
-    shader2d.use();
-    curShader = &shader2d;
+    //set up shader3d
+    shader3d.load("./shader3d.vert", "./shader3d.frag");
+    shader3d.use();
+    curShader = &shader3d;
     cameraSpeed = 0.05f;
 
-    glm::mat4 shader2d_projection;
-    shader2d_projection = glm::perspective(glm::radians(90.0f), (float)640 / (float)480, 0.1f, 100.0f);
+    glm::mat4 shader3d_projection;
+    shader3d_projection = glm::perspective(glm::radians(90.0f), (float)640 / (float)480, 0.1f, 100.0f);
 
-    shader2d_angle = 0.0f;
-    glm::vec3 shader2d_up = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 shader2d_eye = glm::vec3(0.0f, 0.0f, 2.0f);
-    float shader2d_dirX = sin(glm::radians(shader2d_angle));
-    float shader2d_dirZ = cos(glm::radians(shader2d_angle));
-    glm::vec3 shader2d_direction = glm::vec3(shader2d_dirX, 0.0f, shader2d_dirZ);
-    shader2d_direction = glm::normalize(shader2d_direction);
-    glm::mat4 shader2d_view = glm::lookAt(shader2d_eye, shader2d_eye + shader2d_direction, shader2d_up);
+    shader3d_angle = 0.0f;
+    glm::vec3 shader3d_up = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 shader3d_eye = glm::vec3(0.0f, 0.0f, 2.0f);
+    float shader3d_dirX = sin(glm::radians(shader3d_angle));
+    float shader3d_dirZ = cos(glm::radians(shader3d_angle));
+    glm::vec3 shader3d_direction = glm::vec3(shader3d_dirX, 0.0f, shader3d_dirZ);
+    shader3d_direction = glm::normalize(shader3d_direction);
+    glm::mat4 shader3d_view = glm::lookAt(shader3d_eye, shader3d_eye + shader3d_direction, shader3d_up);
 
-    shader2d.setMat4("view", shader2d_view);
-    shader2d.setMat4("projection", shader2d_projection);
-    shader2d.setFloat("depth", 1.0f);
-    shader2d.setInt("texture1", 0);
+    shader3d.setMat4("view", shader3d_view);
+    shader3d.setMat4("projection", shader3d_projection);
+    shader3d.setFloat("depth", 1.0f);
+    shader3d.setInt("texture1", 0);
 
 
     
@@ -439,17 +439,17 @@ int main(int argc, char *args[])
         }
 
         if(keyPressed[kbX]) {
-            shader2d_eye = glm::vec3(0.0f, 0.0f, 2.0f);
-            shader2d_angle = 0.0f;
+            shader3d_eye = glm::vec3(0.0f, 0.0f, 2.0f);
+            shader3d_angle = 0.0f;
             camX = 3;
             camZ = 5;
         }
 
         if(keyPressed[kbC]) {
-            if(shader2d_angle == 0.0f) {
-                shader2d_angle += 90.0f;
+            if(shader3d_angle == 0.0f) {
+                shader3d_angle += 90.0f;
             } else {
-                shader2d_angle = 0.0f;
+                shader3d_angle = 0.0f;
             }
         }
 
@@ -497,13 +497,13 @@ int main(int argc, char *args[])
                 //moving forwards
                 static int timer = 0;
                 timer += 1;
-                shader2d_eye += shader2d_direction * cameraSpeed;
+                shader3d_eye += shader3d_direction * cameraSpeed;
                 if(timer >= 80) {
                     timer = 0;
                     moveState = 0;
                     moveCheck = false;
 
-                    shader2d_eye -= shader2d_direction * cameraSpeed * 80.0f;
+                    shader3d_eye -= shader3d_direction * cameraSpeed * 80.0f;
 
                     switch(facing) {
                         case 0x01:
@@ -524,13 +524,13 @@ int main(int argc, char *args[])
                 //moving backwards
                 static int timer = 0;
                 timer += 1;
-                shader2d_eye -= shader2d_direction * cameraSpeed;
+                shader3d_eye -= shader3d_direction * cameraSpeed;
                 if(timer >= 80) {
                     timer = 0;
                     moveState = 0;
                     moveCheck = false;
 
-                    shader2d_eye += shader2d_direction * cameraSpeed * 80.0f;
+                    shader3d_eye += shader3d_direction * cameraSpeed * 80.0f;
 
                     switch(facing) {
                         case 0x01:
@@ -552,12 +552,12 @@ int main(int argc, char *args[])
                 static int timer = 0;
                 timer += 1;
                 if(timer <= 40) {
-                    shader2d_eye += shader2d_direction * cameraSpeed;
+                    shader3d_eye += shader3d_direction * cameraSpeed;
                 } else if(timer <= 80) {
-                    shader2d_angle += cameraSpeed * 45;
+                    shader3d_angle += cameraSpeed * 45;
                 } else if(timer <= 120) {
                     if(timer == 81) {
-                        shader2d_eye -= shader2d_direction * cameraSpeed * 80.0f;
+                        shader3d_eye -= shader3d_direction * cameraSpeed * 80.0f;
                         switch(facing) {
                             case 0x01:
                                 camZ -= 1;
@@ -573,7 +573,7 @@ int main(int argc, char *args[])
                                 break;
                         }
                     }
-                    shader2d_eye += shader2d_direction * cameraSpeed;
+                    shader3d_eye += shader3d_direction * cameraSpeed;
                 } else if(timer > 120) {
                     timer = 0;
                     moveState = 0;
@@ -583,12 +583,12 @@ int main(int argc, char *args[])
                 static int timer = 0;
                 timer += 1;
                 if(timer <= 40) {
-                    shader2d_eye += shader2d_direction * cameraSpeed;
+                    shader3d_eye += shader3d_direction * cameraSpeed;
                 } else if(timer <= 80) {
-                    shader2d_angle -= cameraSpeed * 45;
+                    shader3d_angle -= cameraSpeed * 45;
                 } else if(timer <= 120) {
                     if(timer == 81) {
-                        shader2d_eye -= shader2d_direction * cameraSpeed * 80.0f;
+                        shader3d_eye -= shader3d_direction * cameraSpeed * 80.0f;
 
                         switch(facing) {
                             case 0x01:
@@ -605,7 +605,7 @@ int main(int argc, char *args[])
                                 break;
                         }
                     }
-                    shader2d_eye += shader2d_direction * cameraSpeed;
+                    shader3d_eye += shader3d_direction * cameraSpeed;
                 } else if(timer > 120) {
                     timer = 0;
                     moveState = 0;
@@ -628,22 +628,22 @@ int main(int argc, char *args[])
         } else {
             //free camera movement for testing purposes
             if(keyState[kbW]) {
-                shader2d_eye += shader2d_direction * cameraSpeed;
+                shader3d_eye += shader3d_direction * cameraSpeed;
             }
             if(keyState[kbS]) {
-                shader2d_eye -= shader2d_direction * cameraSpeed;
+                shader3d_eye -= shader3d_direction * cameraSpeed;
             }
             if(keyState[kbA]) {
-                shader2d_eye += glm::vec3(shader2d_direction.z, 0.0f, -shader2d_direction.x) * cameraSpeed;
+                shader3d_eye += glm::vec3(shader3d_direction.z, 0.0f, -shader3d_direction.x) * cameraSpeed;
             }
             if(keyState[kbD]) {
-                shader2d_eye -= glm::vec3(shader2d_direction.z, 0.0f, -shader2d_direction.x) * cameraSpeed;
+                shader3d_eye -= glm::vec3(shader3d_direction.z, 0.0f, -shader3d_direction.x) * cameraSpeed;
             }
             if(keyState[kbQ]) {
-                shader2d_angle += cameraSpeed * 45;
+                shader3d_angle += cameraSpeed * 45;
             }
             if(keyState[kbE]) {
-                shader2d_angle -= cameraSpeed * 45;
+                shader3d_angle -= cameraSpeed * 45;
             }
 
         }
@@ -651,44 +651,44 @@ int main(int argc, char *args[])
         
 
 
-        if(shader2d_angle > 360.0f) {
-            shader2d_angle -= 360.0f;
-        } else if(shader2d_angle < 0.0f) {
-            shader2d_angle += 360.0f;
+        if(shader3d_angle > 360.0f) {
+            shader3d_angle -= 360.0f;
+        } else if(shader3d_angle < 0.0f) {
+            shader3d_angle += 360.0f;
         }
 
-        if(shader2d_angle < 135.0f) {
-            if(shader2d_angle < 45.0f) {
+        if(shader3d_angle < 135.0f) {
+            if(shader3d_angle < 45.0f) {
                 facing = 0x01;
             } else {
                 facing = 0x02;
             }
-        } else if(shader2d_angle < 315.0f) {
-            if(shader2d_angle < 225.0f) {
+        } else if(shader3d_angle < 315.0f) {
+            if(shader3d_angle < 225.0f) {
                 facing = 0x04;
             } else {
                 facing  = 0x08;
             }
-        } else if(shader2d_angle <= 360) {
+        } else if(shader3d_angle <= 360) {
             //315 - 360
             facing = 0x01;
         } else {
-            shader2d_angle = 0;
+            shader3d_angle = 0;
             facing = 0x01; //unexpected, fix it
         }
 
-        shader2d_dirX = sin(glm::radians(shader2d_angle));
-        shader2d_dirZ = cos(glm::radians(shader2d_angle));
-        shader2d_direction = glm::normalize(glm::vec3(shader2d_dirX, 0.0f, shader2d_dirZ));
-        shader2d_view = glm::lookAt(shader2d_eye, shader2d_eye + shader2d_direction, shader2d_up);
+        shader3d_dirX = sin(glm::radians(shader3d_angle));
+        shader3d_dirZ = cos(glm::radians(shader3d_angle));
+        shader3d_direction = glm::normalize(glm::vec3(shader3d_dirX, 0.0f, shader3d_dirZ));
+        shader3d_view = glm::lookAt(shader3d_eye, shader3d_eye + shader3d_direction, shader3d_up);
 
         
         
-        if(curShader != &shader2d) {
-            shader2d.use();
-            curShader = &shader2d;
+        if(curShader != &shader3d) {
+            shader3d.use();
+            curShader = &shader3d;
         }
-        shader2d.setMat4("view", shader2d_view);
+        shader3d.setMat4("view", shader3d_view);
         
         //render the block the camera is at
         glBindTexture(GL_TEXTURE_2D, texture[0]);
@@ -716,14 +716,14 @@ int main(int argc, char *args[])
 
 
         
-        //shader2d.setMat4("model", model[0]);
+        //shader3d.setMat4("model", model[0]);
         //glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)));
 
         //shadow.use();
         //glBindVertexArray(VAO2);
         //glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);    
     
-        //shader2d.setInt("depthEnabled", 0);
+        //shader3d.setInt("depthEnabled", 0);
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)));
 
         SDL_GL_SwapWindow(window);
@@ -1075,9 +1075,9 @@ void blockInfo() {
 }
 
 void drawBlocks() {
-    if(curShader != &shader2d) {
-        shader2d.use();
-        curShader = &shader2d;
+    if(curShader != &shader3d) {
+        shader3d.use();
+        curShader = &shader3d;
     }
 
     glBindVertexArray(VAO);
@@ -1085,37 +1085,37 @@ void drawBlocks() {
     unsigned char current;
 
     if(camZ + 1 < blockH) {
-        shader2d.setMat4("model", model[0]);
+        shader3d.setMat4("model", model[0]);
         current = blocks[8 + (camZ+1)*6 + camX];
         drawBlock(current);
     }
     if(camZ >= 0) {
-        shader2d.setMat4("model", model[2]);
+        shader3d.setMat4("model", model[2]);
         current = blocks[8 + camZ*6 + camX];
         drawBlock(current);
     }
     if(camX - 1 >= 0) {
-        shader2d.setMat4("model", model[1]);
+        shader3d.setMat4("model", model[1]);
         current = blocks[8 + camZ*6 + camX - 1];
         drawBlock(current);
         if(camX - 2 >= 0) {
-            shader2d.setMat4("model", model[4]);
+            shader3d.setMat4("model", model[4]);
             current = blocks[8 + camZ*6 + camX - 2];
             drawBlock(current);
         }
     }
     if(camX + 1 < blockW) {
-        shader2d.setMat4("model", model[3]);
+        shader3d.setMat4("model", model[3]);
         current = blocks[8 + camZ*6 + camX + 1];
         drawBlock(current);
         if(camX + 2 < blockW) {
-            shader2d.setMat4("model", model[6]);
+            shader3d.setMat4("model", model[6]);
             current = blocks[8 + camZ*6 + camX + 2];
             drawBlock(current);
         }
     }
     if(camZ - 1 >= 0) {
-        shader2d.setMat4("model", model[5]);
+        shader3d.setMat4("model", model[5]);
         current = blocks[8 + (camZ-1)*6 + camX];
         drawBlock(current);
     }

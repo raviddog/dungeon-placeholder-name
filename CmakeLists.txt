@@ -38,8 +38,8 @@ endif()
 
 #all platforms
     
-configure_file(${RES_DIR}/shader2d.frag ${OUT_DIR} COPYONLY)
-configure_file(${RES_DIR}/shader2d.vert ${OUT_DIR} COPYONLY)
+configure_file(${RES_DIR}/shader3d.frag ${OUT_DIR} COPYONLY)
+configure_file(${RES_DIR}/shader3d.vert ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/shadow.frag ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/shadow.vert ${OUT_DIR} COPYONLY)
 configure_file(${RES_DIR}/text.vert ${OUT_DIR} COPYONLY)
