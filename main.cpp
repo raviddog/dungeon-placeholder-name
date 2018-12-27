@@ -23,12 +23,19 @@
 /*
     CONTENTS
 
+    [VARDEC]    - file scope declarations
+    [MAIN]      - main function / opengl setup for shaders and gpu memory
+    [MAINLOOP]  - main loop
+    [INPUTS]    - input function
 
 */
 
+//  [VARDEC]
 //window and input
 SDL_Window *window;
 SDL_GLContext maincontext;
+const int scrWidth = 640;
+const int scrHeight = 480;
 bool quit = false;
 bool keyState[82];
 bool keyPressed[82];
@@ -59,7 +66,12 @@ struct Character {
     GLuint     Advance;    // Offset to advance to next glyph
 };
 std::map<GLchar, Character> Characters;
-void renderText(std::string, float, float, float);
+//  deal with this shit later, make an actual game first
+//void createText(int, std::string, float, float, float);    //create and cache text vertices in vram
+//    //TODO: learn how to do like texture buffers or something
+//void updateText(int, float, float, float); //update text location? or just recreate?
+//void renderText(int);               //draw cached text
+void immediateText(std::string, float, float, float);   //uncached text
 uint32_t VAO_font, VBO_font;
 
 
@@ -71,10 +83,60 @@ void blockInfo();
 int camX, camZ, blockW, blockH;
 uint32_t VAO, VBO, EBO;
 
+//enemy image data
+Shader flat;
+uint32_t VAO_enem, VBO_enem, EBO_enem, enemTex;
+
+
+//hud image data
+//reuse flat shader
+uint32_t VAO_hud, VBO_hud;  //might need multiple vbos or something? idk
+
+
+
+//temporary
+int enemX = 3;
+int enemZ = 4;
+bool enemEnabled = true;
+
+// combat stuff
+unsigned char skillData[] = {
+
+};
+class enemy_c;
+
+class player_c {
+    friend class enemy_c;
+    private:
+    public:
+        void dealDamage(int);
+        void takeDamage(int);
+        int target;
+        int curHP, maxHP;
+        int patk;
+} player;
+
+class enemy_c {
+    friend class player;
+    private:
+    public:
+        void dealDamage(int);
+        void takeDamage(int);
+        int curHP, maxHP;
+        int patk;
+} enemy;
+
+
+enemy_c *enemPos[3] = {NULL, &enemy, NULL};
+
+//SUPER TEMP
+float NormXtoOrtho(float);  //convert normalised coordinate to ortho based on screen width
+float NormYtoOrtho(float);  //convert normalised coordinate to ortho based on screen height
+
 //Shader shadow;
 //uint32_t VAO2, VBO2, EBO2;
 
-
+//  [MAIN]
 int main(int argc, char *args[])
 {
     if(SDL_Init(SDL_INIT_EVERYTHING) < 0) {
@@ -91,8 +153,8 @@ int main(int argc, char *args[])
         "opengl test",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
-        640,
-        480,
+        scrWidth,
+        scrHeight,
         SDL_WINDOW_OPENGL
     );
 
@@ -128,7 +190,7 @@ int main(int argc, char *args[])
 
     FT_Init_FreeType(&fontLib);
     FT_New_Face(fontLib, "./SourceSansPro-Regular.ttf", 0, &fontFace);
-    FT_Set_Pixel_Sizes(fontFace, 0, 48);
+    FT_Set_Pixel_Sizes(fontFace, 0, 24);
 
     glActiveTexture(GL_TEXTURE1);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // Disable byte-alignment restriction
@@ -180,7 +242,7 @@ int main(int argc, char *args[])
     curShader = &textShad;
 
     glm::mat4 textShad_projection;
-    textShad_projection = glm::ortho(0.0f, 640.0f, 0.0f, 480.0f);
+    textShad_projection = glm::ortho(0.0f, static_cast<float>(scrWidth), 0.0f, static_cast<float>(scrHeight));
     textShad.setMat4("projection", textShad_projection);
     textShad.setVec3("textColor", glm::vec3(1.0f, 1.0f, 1.0f));
     textShad.setInt("text", 1);
@@ -252,6 +314,45 @@ int main(int argc, char *args[])
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     //glBindTexture(GL_TEXTURE_2D, 0);
+    
+    //
+    //enemy sprite
+    //
+
+    glGenVertexArrays(1, &VAO_enem);
+    glBindVertexArray(VAO_enem);
+    glGenBuffers(1, &VBO_enem);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_enem);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(enemVert), enemVert, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(2*sizeof(float)));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glBindVertexArray(0);
+
+    //glActiveTexture(GL_TEXTURE2);
+
+    data = stbi_load("enemy.png", &imgWidth, &imgHeight, &imgChannels, 0);
+    glGenTextures(1, &enemTex);
+    glBindTexture(GL_TEXTURE_2D, enemTex);
+    if(data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imgWidth, imgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    stbi_image_free(data);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    
+    //glBindTexture(GL_TEXTURE_2D, 0);
+    flat.load("./flat.vert", "./flat.frag");
+    flat.use();
+    curShader = &flat;
+    flat.setInt("tx", 0);
+
 
     /*
     set up rendering for fake shadows or something idk
@@ -289,15 +390,45 @@ int main(int argc, char *args[])
     stbi_image_free(data);
 */
 
+//  [MAINLOOP]
+
     int moveState = 0;
+        /*
+            0 = not moving, out of combat
+            1 = moving forward
+            2 = moving backwards
+            3 = moving left
+            4 = moving right
+            5 = combat - input
+            6 = combat - animation/processing?
+        */
     blockInfo();
     bool moveType = true;
+    bool moveCheck = false;
     unsigned char facing = 0x01;
     // 1
     //234
     data::loadData();
+
+    player.curHP = 5;
+    player.maxHP = 5;
+    player.patk = 2;
+    enemy.curHP = 5;
+    enemy.maxHP = 5;
+    enemy.patk = 1;
+
+    player.target = 1;
+
+
+
+
+
     while(!quit) {
         inputs();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+        glActiveTexture(GL_TEXTURE0);
         
         if(keyPressed[kbZ]) {
             if(moveType) {
@@ -326,31 +457,40 @@ int main(int argc, char *args[])
         if(moveType) {
             if(moveState == 0) {
                 //not moving
-                if(keyPressed[kbW]) {
-                    if(facing & ~blocks[8 + camZ*6 + camX]){
-                        moveState = 1;
+                if(!moveCheck) {
+                    //check for triggers on the current tile
+                    moveCheck  = true;
+                    //temp, do actual enemy generation and checking later
+                    if(camX == enemX && camZ == enemZ && enemEnabled) {
+                        moveState = 5;
                     }
-                }
-                if(keyPressed[kbA]) {
-                    unsigned char turned = facing;
-                    if(turned == 0x08) {
-                        turned = 0x01;
-                    } else {
-                        turned = turned << 1;
+                } else {
+                    if(keyPressed[kbW]) {
+                        if(facing & ~blocks[8 + camZ*6 + camX]){
+                            moveState = 1;
+                        }
                     }
-                    if(turned & ~blocks[8 + camZ*6 + camX]) {
-                        moveState = 3;
+                    if(keyPressed[kbA]) {
+                        unsigned char turned = facing;
+                        if(turned == 0x08) {
+                            turned = 0x01;
+                        } else {
+                            turned = turned << 1;
+                        }
+                        if(turned & ~blocks[8 + camZ*6 + camX]) {
+                            moveState = 3;
+                        }
                     }
-                }
-                if(keyPressed[kbD]) {
-                    unsigned char turned = facing;
-                    if(turned == 0x01) {
-                        turned = 0x08;
-                    } else {
-                        turned = turned >> 1;
-                    }
-                    if(turned & ~blocks[8 + camZ*6 + camX]) {
-                        moveState = 4;
+                    if(keyPressed[kbD]) {
+                        unsigned char turned = facing;
+                        if(turned == 0x01) {
+                            turned = 0x08;
+                        } else {
+                            turned = turned >> 1;
+                        }
+                        if(turned & ~blocks[8 + camZ*6 + camX]) {
+                            moveState = 4;
+                        }
                     }
                 }
             } else if(moveState == 1) {
@@ -361,6 +501,7 @@ int main(int argc, char *args[])
                 if(timer >= 80) {
                     timer = 0;
                     moveState = 0;
+                    moveCheck = false;
 
                     shader2d_eye -= shader2d_direction * cameraSpeed * 80.0f;
 
@@ -387,6 +528,7 @@ int main(int argc, char *args[])
                 if(timer >= 80) {
                     timer = 0;
                     moveState = 0;
+                    moveCheck = false;
 
                     shader2d_eye += shader2d_direction * cameraSpeed * 80.0f;
 
@@ -406,6 +548,7 @@ int main(int argc, char *args[])
                     }
                 }
             } else if(moveState == 3) {
+                //currently unused
                 static int timer = 0;
                 timer += 1;
                 if(timer <= 40) {
@@ -434,6 +577,7 @@ int main(int argc, char *args[])
                 } else if(timer > 120) {
                     timer = 0;
                     moveState = 0;
+                    moveCheck = false;
                 }
             } else if(moveState == 4) {
                 static int timer = 0;
@@ -465,7 +609,20 @@ int main(int argc, char *args[])
                 } else if(timer > 120) {
                     timer = 0;
                     moveState = 0;
+                    moveCheck = false;
                 }
+            } else if(moveState == 5) {
+                //combat menuing stuff
+                if(keyPressed[kbF]) {
+                    player.dealDamage(player.patk);
+                }
+                if(enemy.curHP <= 0) {
+                    enemEnabled = false;
+                    moveState = 0;
+                    moveCheck = false;
+                }
+
+                
             }
 
         } else {
@@ -525,7 +682,7 @@ int main(int argc, char *args[])
         shader2d_direction = glm::normalize(glm::vec3(shader2d_dirX, 0.0f, shader2d_dirZ));
         shader2d_view = glm::lookAt(shader2d_eye, shader2d_eye + shader2d_direction, shader2d_up);
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
         
         if(curShader != &shader2d) {
             shader2d.use();
@@ -534,8 +691,30 @@ int main(int argc, char *args[])
         shader2d.setMat4("view", shader2d_view);
         
         //render the block the camera is at
+        glBindTexture(GL_TEXTURE_2D, texture[0]);
         drawBlocks();
-        renderText("test text blablabla", 100.0f, 100.0f, 1.0f);
+
+        if(moveState == 5) {
+            //combat rendering stuff
+            //why are these separate
+            //work out a better way to do this later
+            //but i want all my rendering stuff together for now
+            //something about spawning in enemy
+            glBindVertexArray(VAO_enem);
+            glBindTexture(GL_TEXTURE_2D, enemTex);
+            flat.use();
+            curShader = &flat;
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+            //glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+
+            //draw hud
+            glDisable(GL_DEPTH_TEST);
+            immediateText(std::to_string(enemy.curHP), NormXtoOrtho(-0.3f), NormYtoOrtho(-0.4f), 1.0);
+            glEnable(GL_DEPTH_TEST);
+        }
+
+
         
         //shader2d.setMat4("model", model[0]);
         //glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(18*sizeof(uint32_t)));
@@ -559,6 +738,8 @@ int main(int argc, char *args[])
     return true;
 }
 
+
+//  [INPUTS]
 void inputs()
 {
     static SDL_Event e;
@@ -942,7 +1123,8 @@ void drawBlocks() {
     glBindVertexArray(0);
 }
 
-void renderText(std::string text, GLfloat x, GLfloat y, GLfloat scale)
+
+void immediateText(std::string text, GLfloat x, GLfloat y, GLfloat scale)
 {
     //TODO: cache the vertexes for each text object
     // Activate corresponding render state	
@@ -958,6 +1140,7 @@ void renderText(std::string text, GLfloat x, GLfloat y, GLfloat scale)
     //glUniform3f(glGetUniformLocation(textShad.Program, "textColor"), color.x, color.y, color.z);
     glActiveTexture(GL_TEXTURE1);
     glBindVertexArray(VAO_font);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_font);
     //glEnable(GL_CULL_FACE);
 
     // Iterate through all characters
@@ -984,9 +1167,9 @@ void renderText(std::string text, GLfloat x, GLfloat y, GLfloat scale)
         // Render glyph texture over quad
         glBindTexture(GL_TEXTURE_2D, ch.TextureID);
         // Update content of VBO memory
-        glBindBuffer(GL_ARRAY_BUFFER, VBO_font);
+        //glBindBuffer(GL_ARRAY_BUFFER, VBO_font);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); 
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        //glBindBuffer(GL_ARRAY_BUFFER, 0);
         // Render quad
         glDrawArrays(GL_TRIANGLES, 0, 6);
         // Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
@@ -994,8 +1177,48 @@ void renderText(std::string text, GLfloat x, GLfloat y, GLfloat scale)
     }
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     //glDisable(GL_CULL_FACE);
 }
+
+//combat class function stuff
+
+
+void player_c::dealDamage(int damage) {
+    enemPos[target]->takeDamage(damage);
+}
+
+void player_c::takeDamage(int damage) {
+    curHP -= damage;
+}
+
+void enemy_c::dealDamage(int damage) {
+
+}
+
+void enemy_c::takeDamage(int damage) {
+    curHP -= damage;
+}
+
+
+float NormXtoOrtho(float nX){
+   nX = (nX + 1.0f) * static_cast<float>(scrWidth) * 0.5f;
+   return nX;
+}
+
+float NormYtoOrtho(float nY) {
+    nY = (nY + 1.0f) * static_cast<float>(scrHeight) * 0.5f;
+    return nY;
+}
+
+
+
+
+
+
+
+
+
 
 
 

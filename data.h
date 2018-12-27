@@ -11,11 +11,6 @@ namespace data
 
 }
 /*
-        The way I go about handling the blocks needs to change
-        It's currently too complicated, instead each block needs to have data
-        describing if each side is open or closed, then its a simple matter of just
-        drawing either a wall or a path, and they'll all connect in the middle.
-
         need a char array and a size
         first 8 bytes are header
         leave 2 as a type code
@@ -43,6 +38,7 @@ namespace data
     //   09 |  | 0A |  | 0B |   _0C_|
     //  ____            ____
     //  _0D_|  |_0E_|  |_0F_|    FF
+    
 unsigned char blocks[] = {
     0x84, 0xFF, 0xFF, 0xFF, 0x06, 0x06, 0x03, 0x05,
     0xFF, 0x07|0x10, 0x01, 0x09, 0xFF, 0xFF,
@@ -183,6 +179,18 @@ uint32_t indices[] = {
     36, 37, 38,
     36, 39, 38
 };
+
+float enemVert[] = {
+    -0.3f, 0.3f, 0.0f, 1.0f,
+    -0.3f, -0.3f, 0.0f, 0.0f,
+    0.3f, -0.3f, 1.0f, 0.0f,
+    -0.3f, 0.3f, 0.0f, 1.0f,
+    0.3f, 0.3f, 1.0f, 1.0f,  
+    0.3f, -0.3f, 1.0f, 0.0f
+};
+
+
+
 /*
 float fade[] = {
     -0.5f, -0.8f, 0.0f,
